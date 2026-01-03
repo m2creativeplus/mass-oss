@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MASS Car Workshop - UI/UX Case Study</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f172a;
+      color: #fff;
+      line-height: 1.6;
+    }
+    
+    .page {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px;
+      page-break-after: always;
+    }
+    
+    .cover {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #f97316 150%);
+    }
+    
+    .cover h1 {
+      font-size: 72px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    
+    .cover h1 span { color: #f97316; }
+    
+    .cover h2 {
+      font-size: 28px;
+      font-weight: 400;
+      color: #94a3b8;
+      margin-bottom: 40px;
+    }
+    
+    .cover .meta {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
+    h2 {
+      font-size: 32px;
+      margin-bottom: 24px;
+      color: #f97316;
+    }
+    
+    h3 {
+      font-size: 24px;
+      margin: 32px 0 16px;
+      color: #fff;
+    }
+    
+    p {
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+    
+    .screenshot {
+      width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      margin: 24px 0;
+    }
+    
+    .module-section {
+      margin-bottom: 60px;
+    }
+    
+    .badge {
+      display: inline-block;
+      background: #f97316;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    
+    .features-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin: 24px 0;
+    }
+    
+    .feature-item {
+      background: rgba(255,255,255,0.05);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .color-palette {
+      display: flex;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    
+    .color-swatch {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      display: flex;
+      align-items: flex-end;
+      padding: 8px;
+      font-size: 10px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    th {
+      background: rgba(249,115,22,0.2);
+      color: #f97316;
+    }
+    
+    @media print {
+      .page { page-break-after: always; }
+      .cover { height: auto; padding: 100px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Page -->
+  <div class="page cover">
+    <h1><span>MASS</span> Car Workshop</h1>
+    <h2>UI/UX Case Study</h2>
+    <p style="font-size: 20px; color: #94a3b8;">Vehicle Workshop Management System</p>
+    <div class="meta" style="margin-top: 60px;">
+      <p>Designed for Somaliland Automotive Market</p>
+      <p>January 2026</p>
+      <p>https://mass-car-workshop-vwms.vercel.app</p>
+    </div>
+  </div>
+
+  <!-- Design System -->
+  <div class="page">
+    <h2>🎨 Design System</h2>
+    
+    <h3>Color Palette</h3>
+    <div class="color-palette">
+      <div class="color-swatch" style="background: #f97316; color: #fff;">Primary Orange<br>#f97316</div>
+      <div class="color-swatch" style="background: #0f172a; border: 1px solid #334155;">Dark BG<br>#0f172a</div>
+      <div class="color-swatch" style="background: #10b981; color: #fff;">Success<br>#10b981</div>
+      <div class="color-swatch" style="background: #f59e0b; color: #fff;">Warning<br>#f59e0b</div>
+      <div class="color-swatch" style="background: #ef4444; color: #fff;">Error<br>#ef4444</div>
+    </div>
+    
+    <h3>Typography</h3>
+    <p>Font Family: Inter (Google Fonts)</p>
+    <p>Headings: Bold 24-32px | Body: Regular 14-16px</p>
+    
+    <h3>Component Library</h3>
+    <div class="features-list">
+      <div class="feature-item">shadcn/ui Components</div>
+      <div class="feature-item">Framer Motion Animations</div>
+      <div class="feature-item">Lucide React Icons</div>
+      <div class="feature-item">Recharts Visualization</div>
+    </div>
+  </div>
+
+  <!-- Login Page -->
+  <div class="page module-section">
+    <span class="badge">Authentication</span>
+    <h2>Login Page</h2>
+    <p>Premium dark login with demo account quick-access buttons for Admin, Staff, Technician, and Customer roles.</p>
+    <img src="login_page_1767378278561.jpg" alt="Login Page" class="screenshot">
+    <div class="features-list">
+      <div class="feature-item">Quick demo login buttons</div>
+      <div class="feature-item">Role-based access indicator</div>
+      <div class="feature-item">Secure credential entry</div>
+      <div class="feature-item">Branded header with logo</div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="page module-section">
+    <span class="badge">Core Module</span>
+    <h2>Dashboard</h2>
+    <p>Central command center with KPIs, charts, and activity feed for real-time business insights.</p>
+    <img src="dashboard_screenshot_1767378315600.jpg" alt="Dashboard" class="screenshot">
+    <h3>Key Metrics</h3>
+    <table>
+      <tr><th>Metric</th><th>Value</th></tr>
+      <tr><td>Parts in Stock</td><td>232</td></tr>
+      <tr><td>Customers</td><td>10</td></tr>
+      <tr><td>Cars in Stock</td><td>44</td></tr>
+      <tr><td>Mechanics</td><td>12</td></tr>
+    </table>
+  </div>
+
+  <!-- Work Orders -->
+  <div class="page module-section">
+    <span class="badge">Operations</span>
+    <h2>Work Orders</h2>
+    <p>Job management interface with status tracking from Check-In to Completed.</p>
+    <img src="work_orders_kanban_1767378381925.jpg" alt="Work Orders" class="screenshot">
+    <div class="features-list">
+      <div class="feature-item">Status: Check-In | Inspecting | Waiting | In Progress | Completed | Delivered</div>
+      <div class="feature-item">Priority badges and filters</div>
+    </div>
+  </div>
+
+  <!-- Customers -->
+  <div class="page module-section">
+    <span class="badge">CRM</span>
+    <h2>Customers</h2>
+    <p>Complete customer relationship management with service history and spending analytics.</p>
+    <img src="customers_page_1767378497758.jpg" alt="Customers" class="screenshot">
+  </div>
+
+  <!-- Vehicles -->
+  <div class="page module-section">
+    <span class="badge">Fleet</span>
+    <h2>Vehicles Registry</h2>
+    <p>Fleet management with vehicle images, specs, and service status tracking.</p>
+    <img src="vehicles_page_1767378861365.jpg" alt="Vehicles" class="screenshot">
+  </div>
+
+  <!-- Appointments -->
+  <div class="page module-section">
+    <span class="badge">Scheduling</span>
+    <h2>Appointments</h2>
+    <p>Service scheduling with calendar view, booking management, and revenue estimation.</p>
+    <img src="appointments_page_1767379008387.jpg" alt="Appointments" class="screenshot">
+  </div>
+
+  <!-- Inventory -->
+  <div class="page module-section">
+    <span class="badge">Stock</span>
+    <h2>Inventory (Parts Stock)</h2>
+    <p>Parts inventory with stock levels, pricing, and condition tracking.</p>
+    <img src="inventory_page_1767378408149.jpg" alt="Inventory" class="screenshot">
+  </div>
+
+  <!-- POS -->
+  <div class="page module-section">
+    <span class="badge">Sales</span>
+    <h2>Point of Sale</h2>
+    <p>Counter sales interface with barcode scanning, cart management, and multiple payment methods.</p>
+    <img src="pos_module_1767378442208.jpg" alt="POS Module" class="screenshot">
+    <div class="features-list">
+      <div class="feature-item">Barcode Scanner Integration</div>
+      <div class="feature-item">Cash, Zaad, e-Dahab, Card</div>
+      <div class="feature-item">PDF Invoice Generation</div>
+      <div class="feature-item">Auto Inventory Decrement</div>
+    </div>
+  </div>
+
+  <!-- Catalog -->
+  <div class="page module-section">
+    <span class="badge">Services</span>
+    <h2>Service Catalog</h2>
+    <p>Services and parts catalog with pricing and duration estimates.</p>
+    <img src="catalog_page_1767378888701.jpg" alt="Catalog" class="screenshot">
+  </div>
+
+  <!-- Delivery -->
+  <div class="page module-section">
+    <span class="badge">Logistics</span>
+    <h2>Delivery Tracking</h2>
+    <p>Vehicle delivery management with driver assignment and real-time status.</p>
+    <img src="delivery_page_1767378922182.jpg" alt="Delivery" class="screenshot">
+  </div>
+
+  <!-- Car Requests -->
+  <div class="page module-section">
+    <span class="badge">Intake</span>
+    <h2>Car Requests</h2>
+    <p>Customer service request form and request tracking system.</p>
+    <img src="car_requests_page_1767378982650.jpg" alt="Car Requests" class="screenshot">
+  </div>
+
+  <!-- Summary -->
+  <div class="page">
+    <h2>📊 Summary</h2>
+    
+    <h3>Modules Documented</h3>
+    <table>
+      <tr><th>Module</th><th>Purpose</th></tr>
+      <tr><td>Login</td><td>Authentication & Role Selection</td></tr>
+      <tr><td>Dashboard</td><td>KPIs & Business Intelligence</td></tr>
+      <tr><td>Work Orders</td><td>Job Lifecycle Management</td></tr>
+      <tr><td>Customers</td><td>CRM & History</td></tr>
+      <tr><td>Vehicles</td><td>Fleet Registry</td></tr>
+      <tr><td>Appointments</td><td>Scheduling</td></tr>
+      <tr><td>Inventory</td><td>Stock Management</td></tr>
+      <tr><td>POS</td><td>Point of Sale</td></tr>
+      <tr><td>Catalog</td><td>Services & Parts</td></tr>
+      <tr><td>Delivery</td><td>Logistics</td></tr>
+      <tr><td>Car Requests</td><td>Service Intake</td></tr>
+    </table>
+    
+    <h3>Technology Stack</h3>
+    <div class="features-list">
+      <div class="feature-item">Next.js 15 + React 19</div>
+      <div class="feature-item">TypeScript</div>
+      <div class="feature-item">Tailwind CSS</div>
+      <div class="feature-item">Convex Real-time Database</div>
+      <div class="feature-item">Framer Motion</div>
+      <div class="feature-item">shadcn/ui</div>
+    </div>
+    
+    <div style="margin-top: 60px; text-align: center; color: #64748b;">
+      <p>MASS Car Workshop - Vehicle Workshop Management System</p>
+      <p>© 2026 MASS Automotive</p>
+    </div>
+  </div>
+
+</body>
+</html>

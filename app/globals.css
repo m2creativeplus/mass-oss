@@ -1,0 +1,427 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   MASS CAR WORKSHOP - PREMIUM DESIGN SYSTEM
+   Benchmarked against: Shopmonkey, Tekmetric, AutoLeap
+   ============================================ */
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    /* Premium Automotive Color Palette */
+    --background: 220 14% 96%;
+    --foreground: 224 71% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+    
+    /* Primary: MASS Orange */
+    --primary: 24 95% 53%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary: Slate */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 9% 46%;
+    
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    
+    /* Accent: Electric Blue */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success: Emerald */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning: Amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 24 95% 53%;
+    
+    /* Chart Colors - Automotive Inspired */
+    --chart-1: 24 95% 53%;    /* Orange */
+    --chart-2: 142 71% 45%;   /* Emerald */
+    --chart-3: 217 91% 60%;   /* Blue */
+    --chart-4: 262 83% 58%;   /* Purple */
+    --chart-5: 340 82% 52%;   /* Pink */
+    
+    --radius: 0.75rem;
+    
+    /* Sidebar - Premium Dark */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 24 95% 53%;
+    
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 11%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 24 95% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 24 95% 53%;
+    --chart-1: 24 95% 53%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 217 91% 60%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 340 82% 52%;
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 24 95% 53%;
+    
+    --glass-bg: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ============================================
+   PREMIUM COMPONENTS
+   ============================================ */
+
+@layer components {
+  /* Glassmorphism Card */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+  
+  /* Premium Gradient Backgrounds */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(24 95% 45%) 100%);
+  }
+  
+  .gradient-success {
+    background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(142 71% 35%) 100%);
+  }
+  
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(217 91% 50%) 100%);
+  }
+  
+  .gradient-dark {
+    background: linear-gradient(135deg, hsl(222 47% 11%) 0%, hsl(222 47% 5%) 100%);
+  }
+  
+  /* Animated Glow Effect */
+  .glow-primary {
+    box-shadow: 0 0 20px hsla(24, 95%, 53%, 0.3),
+                0 0 40px hsla(24, 95%, 53%, 0.1);
+  }
+  
+  .glow-success {
+    box-shadow: 0 0 20px hsla(142, 71%, 45%, 0.3),
+                0 0 40px hsla(142, 71%, 45%, 0.1);
+  }
+  
+  /* Premium Status Indicators */
+  .status-dot {
+    @apply w-2.5 h-2.5 rounded-full;
+  }
+  
+  .status-dot-success {
+    @apply bg-emerald-500;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    animation: pulse-success 2s infinite;
+  }
+  
+  .status-dot-warning {
+    @apply bg-amber-500;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    animation: pulse-warning 2s infinite;
+  }
+  
+  .status-dot-danger {
+    @apply bg-red-500;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    animation: pulse-danger 2s infinite;
+  }
+  
+  /* DVI Color Coded Items */
+  .dvi-good {
+    @apply bg-emerald-100 border-emerald-300 text-emerald-800;
+  }
+  
+  .dvi-attention {
+    @apply bg-amber-100 border-amber-300 text-amber-800;
+  }
+  
+  .dvi-urgent {
+    @apply bg-red-100 border-red-300 text-red-800;
+  }
+  
+  .dark .dvi-good {
+    @apply bg-emerald-900/30 border-emerald-700 text-emerald-300;
+  }
+  
+  .dark .dvi-attention {
+    @apply bg-amber-900/30 border-amber-700 text-amber-300;
+  }
+  
+  .dark .dvi-urgent {
+    @apply bg-red-900/30 border-red-700 text-red-300;
+  }
+  
+  /* Kanban Workflow Board */
+  .kanban-column {
+    @apply bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 min-h-[400px];
+  }
+  
+  .kanban-card {
+    @apply bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm 
+           border border-gray-200 dark:border-slate-700
+           hover:shadow-md hover:border-orange-300 dark:hover:border-orange-600
+           transition-all duration-200 cursor-pointer;
+  }
+  
+  /* Premium Sidebar */
+  .sidebar-premium {
+    @apply relative overflow-hidden;
+    background: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(222 47% 8%) 100%);
+  }
+  
+  .sidebar-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: linear-gradient(180deg, hsla(24, 95%, 53%, 0.1) 0%, transparent 100%);
+    pointer-events: none;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
+           text-slate-400 hover:text-white hover:bg-slate-800/50;
+  }
+  
+  .sidebar-item-active {
+    @apply bg-orange-500/10 text-orange-500 border-l-2 border-orange-500;
+  }
+  
+  /* Premium KPI Card */
+  .kpi-card {
+    @apply relative overflow-hidden rounded-xl p-6 
+           bg-white dark:bg-slate-800 
+           border border-gray-200 dark:border-slate-700
+           shadow-sm hover:shadow-lg transition-all duration-300;
+  }
+  
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  }
+  
+  /* Quick Action Button */
+  .quick-action {
+    @apply flex items-center gap-2 px-4 py-2 rounded-lg 
+           bg-orange-500 text-white font-medium
+           hover:bg-orange-600 active:scale-95
+           transition-all duration-200 shadow-lg shadow-orange-500/20;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes pulse-success {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes pulse-warning {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes pulse-danger {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-count-up {
+  animation: count-up 0.5s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.4s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.4s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Staggered animations for lists */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+.stagger-6 { animation-delay: 0.6s; }
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* ============================================
+   RESPONSIVE UTILITIES
+   ============================================ */
+
+@media (max-width: 768px) {
+  .kpi-card {
+    @apply p-4;
+  }
+  
+  .kanban-column {
+    @apply min-h-[300px];
+  }
+}
+
+/* ============================================
+   PRINT STYLES (for Invoices/Estimates)
+   ============================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-full-width {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
