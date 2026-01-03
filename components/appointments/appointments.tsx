@@ -21,9 +21,13 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface Appointment {
   id: string
+  _id?: string
   customer: string
   vehicle: string
   service: string
@@ -32,7 +36,7 @@ interface Appointment {
   time: string
   duration: number
   status: "scheduled" | "in-progress" | "completed" | "cancelled"
-  priority: "normal" | "urgent"
+  priority: "normal" | "urgent" | "high" | "low"
   estimatedCost: number
 }
 
@@ -91,11 +95,37 @@ const mockAppointments: Appointment[] = [
   },
 ]
 
-export function Appointments() {
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments)
+interface AppointmentsProps {
+  orgId?: string
+}
+
+export function Appointments({ orgId = "demo" }: AppointmentsProps) {
+  const isDemo = orgId.startsWith("demo-")
+
+  // Convex Hooks
+  const convexAppointments = useQuery(api.functions.getAppointments, isDemo ? "skip" : { orgId })
+  const deleteAppointment = useMutation(api.functions.deleteAppointment)
+
+  const [localAppointments, setLocalAppointments] = useState<Appointment[]>(mockAppointments)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day")
   const [filterStatus, setFilterStatus] = useState<string>("all")
+
+  // Derived State
+  const appointments = isDemo ? localAppointments : (convexAppointments || []).map((apt: any) => ({
+    id: apt.appointmentNumber || apt._id,
+    _id: apt._id,
+    customer: "Unknown Customer", // Placeholder until joined
+    vehicle: "Unknown Vehicle",   // Placeholder until joined
+    service: apt.serviceType || "Service",
+    technician: "Unassigned",     // Placeholder
+    date: apt.appointmentDate,
+    time: "09:00",               // Placeholder as schematic might not have time field separate or formatted differently
+    duration: apt.durationMinutes || 60,
+    status: apt.status as any,
+    priority: apt.priority as any,
+    estimatedCost: 0
+  }))
 
   const getStatusConfig = (status: Appointment["status"]) => {
     switch (status) {
@@ -123,6 +153,12 @@ export function Appointments() {
           icon: XCircle,
           label: "Cancelled" 
         }
+      default:
+         return { 
+          color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400", 
+          icon: AlertCircle,
+          label: status 
+        }
     }
   }
 
@@ -134,7 +170,9 @@ export function Appointments() {
     return true
   })
 
-  const todayAppointments = appointments.filter(apt => apt.date === new Date().toISOString().split('T')[0])
+  // Basic stats logic (simplified date checking for "today")
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayAppointments = appointments.filter(apt => apt.date === todayStr)
   const upcomingCount = appointments.filter(apt => apt.status === "scheduled").length
   const inProgressCount = appointments.filter(apt => apt.status === "in-progress").length
 
@@ -145,6 +183,7 @@ export function Appointments() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Service Schedule</h1>
           <p className="text-muted-foreground mt-1">Manage appointments and service bookings</p>
+          {isDemo && <Badge variant="outline" className="mt-1 text-xs border-orange-500 text-orange-500">Demo Mode</Badge>}
         </div>
         <Button className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20">
           <Plus className="mr-2 h-4 w-4" />
@@ -345,6 +384,22 @@ export function Appointments() {
                         )}
                         <Button size="sm" variant="outline">
                           Details
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={async () => {
+                            if (isDemo) {
+                              setLocalAppointments(localAppointments.filter(a => a.id !== appointment.id))
+                            } else {
+                              if ((appointment as any)._id) {
+                                await deleteAppointment({ id: (appointment as any)._id })
+                              }
+                            }
+                          }}
+                        >
+                          <XCircle className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>

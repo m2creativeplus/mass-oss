@@ -911,4 +911,171 @@ export default defineSchema({
   }).index("by_section", ["section"])
     .index("by_key", ["section", "key"])
     .index("by_org", ["orgId"]),
+
+  // ============ 30. SETTINGS (SaaS Configuration) ============
+  // Stores organization-specific settings for branding, SEO, integrations
+  settings: defineTable({
+    orgId: v.string(),
+    siteName: v.optional(v.string()), // "My Workshop"
+    timezone: v.optional(v.string()), // "Africa/Nairobi"
+    currency: v.optional(v.string()), // "USD", "SLSH"
+    
+    // Branding
+    logoUrl: v.optional(v.string()),
+    faviconUrl: v.optional(v.string()),
+    primaryColor: v.optional(v.string()), // "#00A65A"
+    secondaryColor: v.optional(v.string()),
+    
+    // SEO
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
+    seoKeywords: v.optional(v.string()),
+    
+    // Integrations
+    googleAnalyticsId: v.optional(v.string()),
+    facebookPixelId: v.optional(v.string()),
+    
+    // System
+    invoicePrefix: v.optional(v.string()), // "INV-"
+    jobPrefix: v.optional(v.string()), // "JOB-"
+  }).index("by_org", ["orgId"]),
+
+  // ============================================================
+  // MASS OS - AUTOMOTIVE INTELLIGENCE TABLES
+  // ============================================================
+
+  // ============ 31. AUTOMOTIVE ENTITIES (Workshops, Dealers, etc.) ============
+  automotiveEntities: defineTable({
+    entityType: v.union(
+      v.literal("workshop"),
+      v.literal("dealer"),
+      v.literal("parts_seller"),
+      v.literal("dilaal"),
+      v.literal("tire_shop"),
+      v.literal("fuel_station"),
+      v.literal("fleet_operator"),
+      v.literal("service_provider")
+    ),
+    businessName: v.string(),
+    businessNameSomali: v.optional(v.string()),
+    city: v.string(),
+    neighborhood: v.optional(v.string()),
+    addressRaw: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    phoneNumbers: v.array(v.string()),
+    email: v.optional(v.string()),
+    whatsapp: v.optional(v.string()),
+    facebook: v.optional(v.string()),
+    tiktok: v.optional(v.string()),
+    servicesOffered: v.array(v.string()),
+    brandsSpecialized: v.array(v.string()),
+    laborRate: v.optional(v.number()),
+    trustScore: v.number(), // 0-100
+    dataQuality: v.union(v.literal("high"), v.literal("medium"), v.literal("low")),
+    source: v.union(
+      v.literal("google_maps"),
+      v.literal("facebook"),
+      v.literal("tiktok"),
+      v.literal("manual"),
+      v.literal("gold_standard")
+    ),
+    verified: v.boolean(),
+    isActive: v.boolean(),
+    lastUpdated: v.string(),
+    googlePlaceId: v.optional(v.string()),
+    mediaAssets: v.optional(v.array(v.string())),
+  }).index("by_city", ["city"])
+    .index("by_type", ["entityType"])
+    .index("by_verified", ["verified"])
+    .index("by_source", ["source"]),
+
+  // ============ 32. VEHICLE INTELLIGENCE (Market Data) ============
+  vehicleIntelligence: defineTable({
+    make: v.string(),
+    model: v.string(),
+    variant: v.optional(v.string()),
+    yearRangeStart: v.number(),
+    yearRangeEnd: v.number(),
+    popularityScore: v.number(), // 1-100
+    primaryUse: v.union(
+      v.literal("taxi"),
+      v.literal("personal"),
+      v.literal("commercial"),
+      v.literal("government"),
+      v.literal("ngo")
+    ),
+    typicalImportSource: v.union(
+      v.literal("japan"),
+      v.literal("uae"),
+      v.literal("europe"),
+      v.literal("usa"),
+      v.literal("china")
+    ),
+    priceRangeLow: v.number(),
+    priceRangeHigh: v.number(),
+    fuelType: v.union(
+      v.literal("petrol"),
+      v.literal("diesel"),
+      v.literal("hybrid"),
+      v.literal("electric")
+    ),
+    commonFaults: v.array(v.string()),
+    repairFrequencyMonths: v.optional(v.number()),
+    partsAvailability: v.union(v.literal("abundant"), v.literal("common"), v.literal("rare")),
+    maintenanceCostIndex: v.number(), // Relative to Toyota Vitz = 100
+    somaliNickname: v.optional(v.string()),
+    mechanicNotes: v.array(v.string()),
+    climateConsiderations: v.array(v.string()),
+  }).index("by_make", ["make"])
+    .index("by_model", ["make", "model"])
+    .index("by_popularity", ["popularityScore"]),
+
+  // ============ 33. PARTS INTELLIGENCE (Market Pricing) ============
+  partsIntelligence: defineTable({
+    partNumber: v.string(),
+    partNumberOem: v.optional(v.string()),
+    name: v.string(),
+    nameSomali: v.optional(v.string()),
+    category: v.string(),
+    subcategory: v.optional(v.string()),
+    compatibleMakes: v.array(v.string()),
+    compatibleModels: v.array(v.string()),
+    priceOemUsd: v.optional(v.number()),
+    priceAftermarketUsd: v.optional(v.number()),
+    priceUsedUsd: v.optional(v.number()),
+    availabilityScore: v.number(), // 0-100
+    counterfeitRisk: v.union(v.literal("high"), v.literal("medium"), v.literal("low")),
+    demandLevel: v.union(v.literal("very_high"), v.literal("high"), v.literal("medium"), v.literal("low")),
+    lastPriceUpdate: v.string(),
+    priceSource: v.optional(v.string()),
+  }).index("by_category", ["category"])
+    .index("by_part_number", ["partNumber"])
+    .index("by_demand", ["demandLevel"]),
+
+  // ============ 34. MARKET SNAPSHOTS (Daily Analytics) ============
+  marketSnapshots: defineTable({
+    date: v.string(), // YYYY-MM-DD
+    city: v.string(),
+    totalWorkshops: v.number(),
+    totalVehicles: v.number(),
+    averageRepairCost: v.number(),
+    topRepairs: v.array(v.object({
+      repair: v.string(),
+      count: v.number(),
+    })),
+    topParts: v.array(v.object({
+      part: v.string(),
+      demand: v.number(),
+    })),
+    priceChanges: v.optional(v.array(v.object({
+      item: v.string(),
+      previousPrice: v.number(),
+      newPrice: v.number(),
+      changePercent: v.number(),
+    }))),
+  }).index("by_date", ["date"])
+    .index("by_city", ["city"])
+    .index("by_date_city", ["date", "city"]),
 });
+

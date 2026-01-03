@@ -27,8 +27,10 @@ import {
   Check,
   AlertTriangle
 } from "lucide-react"
-// In production: import { useQuery, useMutation } from "convex/react"
-// import { api } from "@/convex/_generated/api"
+// Convex Imports
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 
 interface Customer {
   id: string
@@ -100,10 +102,36 @@ const emptyCustomer = {
   address: "",
 }
 
-export function Customers() {
+export function Customers({ orgId }: { orgId: string }) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [customers, setCustomers] = useState(mockCustomers)
   
+  // Detemine if Demo Mode
+  const isDemo = orgId.startsWith("demo-")
+
+  // Convex Hooks
+  const convexCustomers = useQuery(api.functions.getCustomers, isDemo ? "skip" : { orgId })
+  const createCustomer = useMutation(api.functions.addCustomer)
+  const updateCustomer = useMutation(api.functions.updateCustomer)
+  const deleteCustomer = useMutation(api.functions.deleteCustomer)
+
+  // Demo State (for demo users only)
+  const [demoCustomers, setDemoCustomers] = useState(mockCustomers)
+
+  // Effective Data
+  // Map Convex _id to id for UI consistency
+  const activeCustomers = isDemo ? demoCustomers : (convexCustomers || []).map(c => ({
+    ...c,
+    id: c._id,
+    // Ensure numeric fields are numbers (Convex might return them as numbers, UI expects numbers)
+    // Add missing fields if schema is optional
+    vehicles: 0, // TODO: Fetch vehicle count separately or join
+    totalSpent: 0, // TODO: Fetch
+    lastVisit: (c as any)._creationTime ? new Date((c as any)._creationTime).toISOString() : new Date().toISOString(), 
+    status: (c.isActive ? 'active' : 'inactive') as "active" | "inactive"
+  }))
+
+  const isLoading = !isDemo && convexCustomers === undefined
+
   // Dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -114,16 +142,10 @@ export function Customers() {
   // Form state
   const [formData, setFormData] = useState(emptyCustomer)
 
-  // In production, use Convex:
-  // const customers = useQuery(api.functions.getCustomers) || []
-  // const createCustomer = useMutation(api.functions.createCustomer)
-  // const updateCustomer = useMutation(api.functions.updateCustomer)
-  // const deleteCustomer = useMutation(api.functions.deleteCustomer)
-
-  const filteredCustomers = customers.filter(customer =>
+  const filteredCustomers = activeCustomers.filter(customer =>
     `${customer.firstName} ${customer.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone.includes(searchQuery)
+    (customer.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (customer.phone || "").includes(searchQuery)
   )
 
   const handleCreate = () => {
@@ -153,37 +175,64 @@ export function Customers() {
     setIsDeleteOpen(true)
   }
 
-  const submitCreate = () => {
-    // In production: createCustomer({ ...formData, customerNumber: `CUST-${Date.now()}`, isActive: true })
-    const newCustomer: Customer = {
-      id: String(Date.now()),
-      ...formData,
-      vehicles: 0,
-      totalSpent: 0,
-      lastVisit: new Date().toISOString().split("T")[0],
-      status: "active",
+  const submitCreate = async () => {
+    if (isDemo) {
+      const newCustomer: Customer = {
+        id: String(Date.now()),
+        ...formData,
+        vehicles: 0,
+        totalSpent: 0,
+        lastVisit: new Date().toISOString().split("T")[0],
+        status: "active",
+      }
+      setDemoCustomers([...demoCustomers, newCustomer])
+    } else {
+      await createCustomer({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        country: "Somaliland", // Default or add to form
+        city: "Hargeisa",      // Default or add to form
+        orgId
+      })
     }
-    setCustomers([...customers, newCustomer])
     setIsCreateOpen(false)
     setFormData(emptyCustomer)
   }
 
-  const submitEdit = () => {
+  const submitEdit = async () => {
     if (!selectedCustomer) return
-    // In production: updateCustomer({ id: selectedCustomer._id, ...formData })
-    setCustomers(customers.map(c => 
-      c.id === selectedCustomer.id 
-        ? { ...c, ...formData }
-        : c
-    ))
+    
+    if (isDemo) {
+      setDemoCustomers(demoCustomers.map(c => 
+        c.id === selectedCustomer.id 
+          ? { ...c, ...formData }
+          : c
+      ))
+    } else {
+      await updateCustomer({
+        id: selectedCustomer.id as Id<"customers">,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+      })
+    }
     setIsEditOpen(false)
     setSelectedCustomer(null)
   }
 
-  const submitDelete = () => {
+  const submitDelete = async () => {
     if (!selectedCustomer) return
-    // In production: deleteCustomer({ id: selectedCustomer._id })
-    setCustomers(customers.filter(c => c.id !== selectedCustomer.id))
+    
+    if (isDemo) {
+      setDemoCustomers(demoCustomers.filter(c => c.id !== selectedCustomer.id))
+    } else {
+      await deleteCustomer({ id: selectedCustomer.id as Id<"customers"> })
+    }
     setIsDeleteOpen(false)
     setSelectedCustomer(null)
   }

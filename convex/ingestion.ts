@@ -7,6 +7,68 @@ import { v } from "convex/values";
 // Enforces "Golden Record" rules via deduplication
 // ============================================================
 
+export const debugSeed = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // 1. Create Organization if it doesn't exist
+    let orgId;
+    const existingOrg = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", "mass-hargeisa"))
+      .first();
+
+    if (existingOrg) {
+      orgId = existingOrg._id;
+    } else {
+        // Create Org
+        const ownerId = await ctx.db.insert("users", {
+            email: "owner@masscar.com",
+            firstName: "Owner",
+            lastName: "Executive",
+            role: "admin",
+            isActive: true
+        });
+        orgId = await ctx.db.insert("organizations", {
+            name: "MASS Car Workshop",
+            slug: "mass-hargeisa",
+            ownerId: ownerId,
+            plan: "enterprise",
+            isActive: true,
+        });
+        console.log("Created Org + Owner");
+        
+        // Ensure owner has role
+        await ctx.db.insert("userOrgRoles", { userId: ownerId, orgId: orgId, role: "admin", isActive: true });
+    }
+    
+    // 2. Create Admin Demo User
+    const adminEmail = "admin@masscar.com";
+    const existingAdmin = await ctx.db.query("users").withIndex("by_email", q => q.eq("email", adminEmail)).first();
+    let adminId = existingAdmin?._id;
+    
+    if (!existingAdmin) {
+        adminId = await ctx.db.insert("users", {
+            email: adminEmail,
+            firstName: "Admin",
+            lastName: "User",
+            role: "admin",
+            isActive: true
+        });
+        console.log("Created Admin");
+    }
+    
+    if (orgId && adminId) {
+        const hasRole = await ctx.db.query("userOrgRoles").withIndex("by_user_org", q => q.eq("userId", adminId!).eq("orgId", orgId!)).first();
+        if (!hasRole) {
+            await ctx.db.insert("userOrgRoles", { userId: adminId!, orgId: orgId!, role: "admin", isActive: true });
+            console.log("Assigned Admin Role");
+        }
+    }
+
+    return "Debug Seed Completed";
+  }
+});
+
 /**
  * INGEST LEADS
  * Acccepts a batch of raw lead data.
@@ -119,3 +181,5 @@ export const ingestLeads = mutation({
     return results;
   },
 });
+
+

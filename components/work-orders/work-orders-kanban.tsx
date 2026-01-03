@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -28,33 +28,40 @@ import {
   Check,
   Phone
 } from "lucide-react"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 
 // Work Order statuses with colors
 const STATUSES: Record<string, { label: string; color: string }> = {
-  CHECK_IN: { label: "Check-In", color: "bg-blue-500" },
-  INSPECTING: { label: "Inspecting", color: "bg-yellow-500" },
-  AWAITING_APPROVAL: { label: "Awaiting Approval", color: "bg-orange-500" },
-  IN_PROGRESS: { label: "In Progress", color: "bg-purple-500" },
-  COMPLETE: { label: "Complete", color: "bg-green-500" },
+  "check-in": { label: "Check-In", color: "bg-blue-500" },
+  "inspecting": { label: "Inspecting", color: "bg-yellow-500" },
+  "awaiting-approval": { label: "Awaiting Approval", color: "bg-orange-500" },
+  "in-progress": { label: "In Progress", color: "bg-purple-500" },
+  "waiting-parts": { label: "Waiting Parts", color: "bg-indigo-500" },
+  "complete": { label: "Complete", color: "bg-green-500" },
+  "invoiced": { label: "Invoiced", color: "bg-emerald-600" },
+  "cancelled": { label: "Cancelled", color: "bg-red-500" },
 }
 
 interface WorkOrder {
   id: string
-  status: keyof typeof STATUSES
+  _id?: string
+  status: string
   vehicle: { make: string; model: string; year: number; plate: string }
   customer: { name: string; phone: string }
   checkinDate: string
   services: string[]
   assignedTech: string
-  priority: "normal" | "high" | "urgent"
+  priority: "low" | "normal" | "high" | "urgent"
   estimate?: number
 }
 
-// Mock work orders data
+// Mock work orders data for demo mode
 const mockWorkOrders: WorkOrder[] = [
   {
     id: "WO-001",
-    status: "CHECK_IN",
+    status: "check-in",
     vehicle: { make: "Toyota", model: "Camry", year: 2020, plate: "ABC-1234" },
     customer: { name: "Ahmed Hassan", phone: "+252-63-4567890" },
     checkinDate: "2024-12-26",
@@ -64,7 +71,7 @@ const mockWorkOrders: WorkOrder[] = [
   },
   {
     id: "WO-002",
-    status: "INSPECTING",
+    status: "inspecting",
     vehicle: { make: "Honda", model: "Civic", year: 2019, plate: "XYZ-5678" },
     customer: { name: "Fatima Omar", phone: "+252-63-7890123" },
     checkinDate: "2024-12-25",
@@ -74,7 +81,7 @@ const mockWorkOrders: WorkOrder[] = [
   },
   {
     id: "WO-003",
-    status: "IN_PROGRESS",
+    status: "in-progress",
     vehicle: { make: "Nissan", model: "Patrol", year: 2021, plate: "DEF-9012" },
     customer: { name: "Said Ibrahim", phone: "+252-63-2345678" },
     checkinDate: "2024-12-24",
@@ -85,7 +92,7 @@ const mockWorkOrders: WorkOrder[] = [
   },
   {
     id: "WO-004",
-    status: "AWAITING_APPROVAL",
+    status: "awaiting-approval",
     vehicle: { make: "Toyota", model: "Land Cruiser", year: 2018, plate: "GHI-3456" },
     customer: { name: "Khadija Jama", phone: "+252-63-5678901" },
     checkinDate: "2024-12-25",
@@ -96,7 +103,7 @@ const mockWorkOrders: WorkOrder[] = [
   },
   {
     id: "WO-005",
-    status: "COMPLETE",
+    status: "complete",
     vehicle: { make: "Hyundai", model: "Elantra", year: 2022, plate: "JKL-7890" },
     customer: { name: "Ali Yusuf", phone: "+252-63-8901234" },
     checkinDate: "2024-12-24",
@@ -127,10 +134,23 @@ const emptyForm = {
   estimate: 0,
 }
 
-export function WorkOrdersKanban() {
+interface WorkOrdersKanbanProps {
+  orgId?: string
+}
+
+export function WorkOrdersKanban({ orgId = "demo" }: WorkOrdersKanbanProps) {
+  const isDemo = orgId.startsWith("demo-")
+  
+  // Convex Hooks
+  const convexWorkOrders = useQuery(api.functions.getWorkOrders, isDemo ? "skip" : { orgId })
+  const createWorkOrder = useMutation(api.functions.createWorkOrder)
+  const updateWorkOrderStatus = useMutation(api.functions.updateWorkOrderStatus)
+  const deleteWorkOrder = useMutation(api.functions.deleteWorkOrder)
+  
+  // Local State (for Demo Mode)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [workOrders, setWorkOrders] = useState(mockWorkOrders)
+  const [localWorkOrders, setLocalWorkOrders] = useState(mockWorkOrders)
   
   // Dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -143,7 +163,25 @@ export function WorkOrdersKanban() {
   const [formData, setFormData] = useState(emptyForm)
   const [selectedServices, setSelectedServices] = useState<string[]>([])
 
-  const filteredOrders = workOrders.filter(order => {
+  // Effective Work Orders (Merge Demo + Real)
+  const activeWorkOrders = isDemo ? localWorkOrders : (convexWorkOrders || []).map((wo: any) => ({
+    id: wo.jobNumber || wo._id,
+    _id: wo._id,
+    status: wo.status,
+    priority: wo.priority,
+    checkinDate: wo.checkinDate,
+    services: wo.services || [],
+    assignedTech: wo.technicianId || "Unassigned", // TODO: Fetch User Name
+    // Placeholder data until joins are implemented
+    vehicle: { make: "Vehicle", model: "Info", year: 0, plate: "PLATE-123" }, 
+    customer: { name: "Customer", phone: "555-0123" },
+    estimate: wo.totalAmount || 0
+  }))
+
+  // NOTE: In a real implementation, we would need to join with Vehicle and Customer tables
+  // For now, in real mode, we display basic info. Enhancing this would require backend joins or separate queries.
+
+  const filteredOrders = activeWorkOrders.filter(order => {
     const matchesSearch = 
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -154,7 +192,7 @@ export function WorkOrdersKanban() {
     return matchesSearch && matchesStatus
   })
 
-  const getPriorityBadge = (priority: WorkOrder["priority"]) => {
+  const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case "urgent":
         return <Badge className="bg-red-500 hover:bg-red-600">Urgent</Badge>
@@ -203,54 +241,82 @@ export function WorkOrdersKanban() {
     }
   }
 
-  const submitCreate = () => {
-    const newOrder: WorkOrder = {
-      id: `WO-${String(Date.now()).slice(-4)}`,
-      status: "CHECK_IN",
-      customer: formData.customer,
-      vehicle: formData.vehicle,
-      services: selectedServices,
-      assignedTech: formData.assignedTech,
-      priority: formData.priority,
-      checkinDate: new Date().toISOString().split("T")[0],
-      estimate: formData.estimate || undefined,
+  const submitCreate = async () => {
+    if (isDemo) {
+      const newOrder: WorkOrder = {
+        id: `WO-${String(Date.now()).slice(-4)}`,
+        status: "check-in",
+        customer: formData.customer,
+        vehicle: formData.vehicle,
+        services: selectedServices,
+        assignedTech: formData.assignedTech,
+        priority: formData.priority,
+        checkinDate: new Date().toISOString().split("T")[0],
+        estimate: formData.estimate || undefined,
+      }
+      setLocalWorkOrders([newOrder, ...localWorkOrders])
+    } else {
+      // Real mutation TODO: Requires valid customerId and vehicleId from selection
+      // For this task, we'll alert as we don't have vehicle/customer selection UI wired up fully yet
+      alert("In full mode, you need to select existing customer/vehicle. This form needs expanding.")
+      return
     }
-    setWorkOrders([newOrder, ...workOrders])
     setIsCreateOpen(false)
     setFormData(emptyForm)
     setSelectedServices([])
   }
 
-  const submitEdit = () => {
+  const submitEdit = async () => {
     if (!selectedOrder) return
-    setWorkOrders(workOrders.map(o => 
-      o.id === selectedOrder.id 
-        ? { 
-            ...o, 
-            customer: formData.customer,
-            vehicle: formData.vehicle,
-            services: selectedServices,
-            assignedTech: formData.assignedTech,
-            priority: formData.priority,
-            estimate: formData.estimate || undefined,
-          }
-        : o
-    ))
+    
+    if (isDemo) {
+      setLocalWorkOrders(localWorkOrders.map(o => 
+        o.id === selectedOrder.id 
+          ? { 
+              ...o, 
+              customer: formData.customer,
+              vehicle: formData.vehicle,
+              services: selectedServices,
+              assignedTech: formData.assignedTech,
+              priority: formData.priority,
+              estimate: formData.estimate || undefined,
+            }
+          : o
+      ))
+    } else {
+       // Real mutation logic (simplified update)
+       if (selectedOrder._id) {
+         // await updateWorkOrder({ id: selectedOrder._id as Id<"workOrders">, ... })
+       }
+    }
     setIsEditOpen(false)
     setSelectedOrder(null)
   }
 
-  const submitDelete = () => {
+  const submitDelete = async () => {
     if (!selectedOrder) return
-    setWorkOrders(workOrders.filter(o => o.id !== selectedOrder.id))
+    
+    if (isDemo) {
+      setLocalWorkOrders(localWorkOrders.filter(o => o.id !== selectedOrder.id))
+    } else {
+      if (selectedOrder._id) {
+        await deleteWorkOrder({ id: selectedOrder._id as Id<"workOrders"> })
+      }
+    }
     setIsDeleteOpen(false)
     setSelectedOrder(null)
   }
 
-  const updateStatus = (order: WorkOrder, newStatus: keyof typeof STATUSES) => {
-    setWorkOrders(workOrders.map(o => 
-      o.id === order.id ? { ...o, status: newStatus } : o
-    ))
+  const updateStatus = async (order: WorkOrder, newStatus: string) => {
+    if (isDemo) {
+      setLocalWorkOrders(localWorkOrders.map(o => 
+        o.id === order.id ? { ...o, status: newStatus } : o
+      ))
+    } else {
+      if (order._id) {
+        await updateWorkOrderStatus({ id: order._id as Id<"workOrders">, status: newStatus as any })
+      }
+    }
   }
 
   return (
@@ -258,9 +324,12 @@ export function WorkOrdersKanban() {
       
       {/* Header Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">
-          Repair Car / Work Orders
-        </h2>
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tight">
+            Repair Car / Work Orders
+          </h2>
+          {isDemo && <Badge variant="outline" className="mt-1 text-xs border-orange-500 text-orange-500">Demo Mode</Badge>}
+        </div>
         
         <div className="flex gap-2 w-full md:w-auto">
           <Button 
@@ -281,7 +350,7 @@ export function WorkOrdersKanban() {
           onClick={() => setStatusFilter("all")}
           className={statusFilter === "all" ? "bg-slate-800" : ""}
         >
-          All ({workOrders.length})
+          All ({filteredOrders.length})
         </Button>
         {Object.entries(STATUSES).map(([key, value]) => (
           <Button 
@@ -291,7 +360,7 @@ export function WorkOrdersKanban() {
             onClick={() => setStatusFilter(key)}
             className={statusFilter === key ? value.color : ""}
           >
-            {value.label} ({workOrders.filter(o => o.status === key).length})
+            {value.label} ({activeWorkOrders.filter(o => o.status === key).length})
           </Button>
         ))}
       </div>
@@ -383,8 +452,8 @@ export function WorkOrdersKanban() {
                   {getPriorityBadge(order.priority)}
                 </td>
                 <td className="px-4 py-3">
-                  <Badge className={`${STATUSES[order.status].color} hover:opacity-80`}>
-                    {STATUSES[order.status].label}
+                  <Badge className={`${STATUSES[order.status]?.color || 'bg-gray-500'} hover:opacity-80`}>
+                    {STATUSES[order.status]?.label || order.status}
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
@@ -394,7 +463,7 @@ export function WorkOrdersKanban() {
                       className="h-7 w-7 bg-[#00c0ef] hover:bg-[#00acd6] text-white rounded shadow-sm"
                       onClick={() => handleView(order)}
                     >
-                      {order.status === "COMPLETE" ? <CheckCircle2 className="h-3 w-3" /> : <Wrench className="h-3 w-3" />}
+                      {order.status === "complete" ? <CheckCircle2 className="h-3 w-3" /> : <Wrench className="h-3 w-3" />}
                     </Button>
                     <Button 
                       size="icon" 
@@ -427,7 +496,7 @@ export function WorkOrdersKanban() {
         {/* Pagination Footer */}
         <div className="bg-slate-50 dark:bg-slate-800 px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center sm:px-6">
            <div className="text-xs text-slate-500">
-             Showing 1 to {filteredOrders.length} of {workOrders.length} entries
+             Showing 1 to {filteredOrders.length} of {activeWorkOrders.length} entries
            </div>
            <div className="flex gap-1">
              <Button variant="outline" size="sm" className="h-7 text-xs" disabled>Previous</Button>
@@ -575,7 +644,7 @@ export function WorkOrdersKanban() {
                 <select 
                   className="w-full border rounded-md p-2"
                   value={formData.priority}
-                  onChange={(e) => setFormData({...formData, priority: e.target.value as "normal" | "high" | "urgent"})}
+                  onChange={(e) => setFormData({...formData, priority: e.target.value as any})}
                 >
                   <option value="normal">Normal</option>
                   <option value="high">High</option>
@@ -681,7 +750,7 @@ export function WorkOrdersKanban() {
                 <select 
                   className="w-full border rounded-md p-2"
                   value={formData.priority}
-                  onChange={(e) => setFormData({...formData, priority: e.target.value as "normal" | "high" | "urgent"})}
+                  onChange={(e) => setFormData({...formData, priority: e.target.value as any})}
                 >
                   <option value="normal">Normal</option>
                   <option value="high">High</option>
@@ -728,8 +797,8 @@ export function WorkOrdersKanban() {
                   <h3 className="text-2xl font-bold">{selectedOrder.id}</h3>
                   <p className="text-sm text-slate-500">Created: {new Date(selectedOrder.checkinDate).toLocaleDateString()}</p>
                 </div>
-                <Badge className={`${STATUSES[selectedOrder.status].color} text-lg px-3 py-1`}>
-                  {STATUSES[selectedOrder.status].label}
+                <Badge className={`${STATUSES[selectedOrder.status]?.color} text-lg px-3 py-1`}>
+                  {STATUSES[selectedOrder.status]?.label}
                 </Badge>
               </div>
 
@@ -795,10 +864,9 @@ export function WorkOrdersKanban() {
                       size="sm"
                       className={`${value.color} hover:opacity-80`}
                       onClick={() => {
-                        updateStatus(selectedOrder, key as keyof typeof STATUSES)
-                        setSelectedOrder({...selectedOrder, status: key as keyof typeof STATUSES})
+                        updateStatus(selectedOrder, key)
+                        setSelectedOrder({...selectedOrder, status: key})
                       }}
-                      disabled={selectedOrder.status === key}
                     >
                       {value.label}
                     </Button>
@@ -809,55 +877,44 @@ export function WorkOrdersKanban() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewOpen(false)}>
-              Close
-            </Button>
-            <Button 
-              className="bg-blue-500 hover:bg-blue-600"
-              onClick={() => {
-                setIsViewOpen(false)
-                if (selectedOrder) handleEdit(selectedOrder)
-              }}
-            >
-              <Pencil className="h-4 w-4 mr-2" /> Edit
-            </Button>
+            {isDeleteOpen ? (
+               <div className="flex gap-2 w-full">
+                  <Button variant="destructive" className="w-full" onClick={submitDelete}>
+                    Confirm Delete
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => setIsDeleteOpen(false)}>
+                    Cancel
+                  </Button>
+               </div>
+            ) : (
+              <Button variant="outline" className="w-full" onClick={() => setIsViewOpen(false)}>
+                Close
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* DELETE CONFIRMATION DIALOG */}
+      
+      {/* DELETE CONFIRMATION DIALOG (Separate for clarity) */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-500">
+            <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
-              Delete Work Order
+              Confirm Deletion
             </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this work order?
-            </DialogDescription>
           </DialogHeader>
-          
-          {selectedOrder && (
-            <div className="py-4">
-              <p className="font-bold">{selectedOrder.id}</p>
-              <p className="text-sm">{selectedOrder.vehicle.year} {selectedOrder.vehicle.make} {selectedOrder.vehicle.model}</p>
-              <p className="text-sm text-slate-500">{selectedOrder.customer.name}</p>
-              <p className="text-xs text-red-500 mt-2">This action cannot be undone.</p>
-            </div>
-          )}
-
+          <div className="py-4">
+             Are you sure you want to delete Work Order <b>{selectedOrder?.id}</b>?
+             This action cannot be undone.
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-red-500 hover:bg-red-600" onClick={submitDelete}>
-              <Trash2 className="h-4 w-4 mr-2" /> Delete
-            </Button>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={submitDelete}>Delete Work Order</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }
-

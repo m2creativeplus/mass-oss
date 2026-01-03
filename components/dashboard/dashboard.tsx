@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { dashboardStats } from "@/lib/data"
-import { StatCard } from "@/components/dashboard/stat-card"
 import { 
   AreaChart, 
   Area, 
@@ -162,6 +161,10 @@ export function Dashboard() {
           </Card>
         </motion.div>
       )}
+
+import { StatCard } from "@/components/dashboard/stat-card" 
+
+// ... inside Dashboard component
 
       {/* 2. Info Cards Row with Framer Motion Spring Physics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
