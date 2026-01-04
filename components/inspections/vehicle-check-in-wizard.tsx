@@ -4,9 +4,10 @@ import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Check, Car, ClipboardList, PenTool, Fuel } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Car, ClipboardList, PenTool, Fuel, Download } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { downloadBookingPDF, type BookingDocumentData } from "@/components/documents/booking-document-pdf";
 
 // Import wizard steps
 import Step1ClientVehicle from "./wizard/step-1-client-vehicle";
@@ -165,6 +166,9 @@ export default function VehicleCheckInWizard({
     
     setIsSubmitting(true);
     try {
+      // Generate booking number
+      const bookingNumber = `CHK-${Date.now().toString(36).toUpperCase()}`;
+      
       // Create work order with inspection data
       const workOrderResult = await createWorkOrder({
         vehicleId: wizardData.vehicleId as any,
@@ -199,6 +203,39 @@ export default function VehicleCheckInWizard({
           orgId,
         });
       }
+
+      // Generate and download PDF booking document
+      const pdfData: BookingDocumentData = {
+        workshopName: "MASS Workshop",
+        workshopAddress: "Hargeisa, Somaliland",
+        workshopPhone: "+252 XX XXX XXXX",
+        bookingNumber,
+        bookingDate: new Date().toLocaleDateString(),
+        customerName: wizardData.customerName,
+        customerPhone: wizardData.customerPhone,
+        customerEmail: wizardData.customerEmail,
+        vehicleMake: wizardData.vehicleMake,
+        vehicleModel: wizardData.vehicleModel,
+        vehicleYear: wizardData.vehicleYear,
+        vehiclePlate: wizardData.vehiclePlate,
+        mileageIn: wizardData.mileageIn,
+        fuelLevel: wizardData.fuelLevel,
+        overallCondition: wizardData.overallCondition,
+        partsChecklist: wizardData.partsChecklist.map((item) => ({
+          name: item.name,
+          category: item.category,
+          status: item.status,
+          notes: item.notes,
+        })),
+        damageMarkers: wizardData.damageMarkers.map((m) => ({
+          severity: m.severity,
+          description: m.description,
+        })),
+        defectNotes: wizardData.defectNotes,
+        signatureData: wizardData.signatureData || undefined,
+      };
+      
+      downloadBookingPDF(pdfData);
 
       onComplete?.(wizardData);
     } catch (error) {
