@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { Receipt, Plus, DollarSign, AlertCircle, CheckCircle2, Clock } from "lucide-react"
+import { Receipt, Plus, DollarSign, AlertCircle, CheckCircle2, Clock, Download } from "lucide-react"
 import { motion } from "framer-motion"
+import { generateInvoicePDF, downloadInvoice } from "@/lib/pdf-invoice"
+import { toast } from "sonner"
 
 export interface InvoicesDashboardProps {
   onOpen?: (id: string) => void
@@ -18,6 +20,41 @@ export interface InvoicesDashboardProps {
 export function InvoicesDashboard({ onOpen }: InvoicesDashboardProps) {
   const orgId = "mass-hargeisa"
   const invoices = useQuery(api.functions.getInvoices, { orgId })
+  const customers = useQuery(api.functions.getCustomers, { orgId })
+  const vehicles = useQuery(api.functions.getVehicles, { orgId })
+
+  const handleDownloadPDF = async (inv: any) => {
+    try {
+      const customer = customers?.find(c => c._id === inv.customerId)
+      const vehicle = vehicles?.find(v => v._id === inv.vehicleId)
+      const blob = await generateInvoicePDF({
+        invoiceNumber: inv.invoiceNumber || "INV-000",
+        date: inv._creationTime ? format(new Date(inv._creationTime), "MMM d, yyyy") : "N/A",
+        dueDate: inv.dueDate || "On Receipt",
+        customerName: customer ? `${customer.firstName} ${customer.lastName}` : "Customer",
+        customerPhone: customer?.phone || "",
+        customerEmail: customer?.email,
+        vehiclePlate: vehicle?.licensePlate || "",
+        vehicleModel: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : "",
+        items: (inv.lineItems || []).map((li: any) => ({
+          description: li.description || li.name || "Service",
+          quantity: li.quantity || 1,
+          unitPrice: li.unitPrice || li.rate || 0,
+          total: (li.quantity || 1) * (li.unitPrice || li.rate || 0),
+        })),
+        subtotal: inv.subtotal || inv.totalAmount || 0,
+        tax: inv.taxAmount || 0,
+        total: inv.totalAmount || 0,
+        paymentMethod: (inv.paymentMethod as any) || "cash",
+        notes: inv.notes,
+      })
+      downloadInvoice(blob, `${inv.invoiceNumber || "invoice"}.pdf`)
+      toast.success(`Downloaded ${inv.invoiceNumber}.pdf`)
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to generate PDF")
+    }
+  }
 
   // KPI Calculations
   const totalInvoiced = invoices?.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0) || 0
@@ -124,6 +161,7 @@ export function InvoicesDashboard({ onOpen }: InvoicesDashboardProps) {
                     <TableHead className="text-right">Total Amount</TableHead>
                     <TableHead className="text-right">Balance Due</TableHead>
                     <TableHead className="text-right">Date</TableHead>
+                    <TableHead className="text-right">PDF</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -147,6 +185,16 @@ export function InvoicesDashboard({ onOpen }: InvoicesDashboardProps) {
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground text-xs">
                         {inv._creationTime ? format(new Date(inv._creationTime), "MMM d, yyyy") : "N/A"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="hover:bg-amber-500/10 hover:text-amber-500 h-8 w-8 p-0"
+                          onClick={(e) => { e.stopPropagation(); handleDownloadPDF(inv) }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

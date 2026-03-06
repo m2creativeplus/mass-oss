@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { FileText, Plus, TrendingUp, CheckCircle, Clock, XCircle } from "lucide-react"
+import { FileText, Plus, TrendingUp, CheckCircle, Clock, XCircle, Download } from "lucide-react"
 import { motion } from "framer-motion"
+import { generateEstimatePDF, downloadEstimate } from "@/lib/pdf-estimate"
+import { toast } from "sonner"
 
 export interface EstimatesDashboardProps {
   onCreate?: () => void
@@ -21,6 +23,42 @@ export function EstimatesDashboard({ onCreate, onOpen }: EstimatesDashboardProps
   const orgId = "mass-hargeisa" // In a real app this would come from auth context
 
   const estimates = useQuery(api.functions.getEstimates, { orgId })
+  const customers = useQuery(api.functions.getCustomers, { orgId })
+  const vehicles = useQuery(api.functions.getVehicles, { orgId })
+
+  const handleDownloadPDF = async (est: any) => {
+    try {
+      const customer = customers?.find(c => c._id === est.customerId)
+      const vehicle = vehicles?.find(v => v._id === est.vehicleId)
+      const blob = await generateEstimatePDF({
+        estimateNumber: est.estimateNumber || "EST-000",
+        date: est._creationTime ? format(new Date(est._creationTime), "MMM d, yyyy") : "N/A",
+        validUntil: est.validUntil || "30 days",
+        customerName: customer ? `${customer.firstName} ${customer.lastName}` : "Customer",
+        customerPhone: customer?.phone || "",
+        customerEmail: customer?.email,
+        vehiclePlate: vehicle?.licensePlate || "",
+        vehicleModel: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : "",
+        items: (est.lineItems || []).map((li: any) => ({
+          description: li.description || li.name || "Service",
+          quantity: li.quantity || 1,
+          unitPrice: li.unitPrice || li.rate || 0,
+          total: (li.quantity || 1) * (li.unitPrice || li.rate || 0),
+          type: li.type || "labor",
+        })),
+        subtotal: est.subtotal || est.totalAmount || 0,
+        tax: est.taxAmount || 0,
+        total: est.totalAmount || 0,
+        notes: est.notes,
+        status: est.status || "draft",
+      })
+      downloadEstimate(blob, `${est.estimateNumber || "estimate"}.pdf`)
+      toast.success(`Downloaded ${est.estimateNumber}.pdf`)
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to generate PDF")
+    }
+  }
 
   // KPI Calculations
   const totalEstimates = estimates?.length || 0
@@ -135,6 +173,7 @@ export function EstimatesDashboard({ onCreate, onOpen }: EstimatesDashboardProps
                     <TableHead>Priority</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Date</TableHead>
+                    <TableHead className="text-right">PDF</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -162,6 +201,16 @@ export function EstimatesDashboard({ onCreate, onOpen }: EstimatesDashboardProps
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
                         {est._creationTime ? format(new Date(est._creationTime), "MMM d, yyyy") : "N/A"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="hover:bg-amber-500/10 hover:text-amber-500 h-8 w-8 p-0"
+                          onClick={(e) => { e.stopPropagation(); handleDownloadPDF(est) }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
