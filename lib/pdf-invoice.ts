@@ -41,8 +41,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Blob> {
   
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(24)
-  doc.setFont('helvetica', 'bold')
-  doc.text('MASS CAR WORKSHOP', 20, 20)
+  doc.text('MASS OSS', 20, 20)
   
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
@@ -165,9 +164,8 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Blob> {
   // Footer
   const footerY = doc.internal.pageSize.getHeight() - 20
   doc.setFontSize(8)
-  doc.setTextColor(128, 128, 128)
-  doc.text('Thank you for choosing MASS Car Workshop!', pageWidth / 2, footerY, { align: 'center' })
-  doc.text('Powered by MASS Vehicle Workshop Management System', pageWidth / 2, footerY + 5, { align: 'center' })
+  doc.text('Thank you for choosing MASS OSS!', pageWidth / 2, footerY, { align: 'center' })
+  doc.text('Powered by MASS OSS - Intelligent Workshop Management', pageWidth / 2, footerY + 5, { align: 'center' })
   
   return doc.output('blob')
 }

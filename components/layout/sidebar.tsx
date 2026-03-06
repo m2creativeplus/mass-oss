@@ -35,7 +35,7 @@ import {
 } from "lucide-react"
 import { useConvexAuth } from "@/components/auth/convex-auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ModeToggle } from "@/components/theme-toggle"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface SidebarProps {
   activeModule: string
@@ -177,16 +177,9 @@ export function Sidebar({ activeModule, onModuleChange, userRole, className }: S
       {/* User Profile Footer */}
       <div className="p-4 mt-auto space-y-2">
         {!isCollapsed && (
-           <div className="flex justify-between items-center px-1"> 
-             <span className="text-xs text-slate-500 font-medium tracking-wider dark:text-slate-400">THEME</span>
-             <ModeToggle />
-           </div>
+             <ThemeToggle />
         )}
-        {isCollapsed && (
-           <div className="flex justify-center mb-2">
-             <ModeToggle />
-           </div>
-        )}
+             <ThemeToggle />
 
         <div className={cn(
           "rounded-xl bg-white/5 border border-white/10 p-3 transition-all duration-300 hover:bg-white/10 hover:border-white/20 cursor-pointer overflow-hidden",

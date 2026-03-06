@@ -179,7 +179,7 @@ export function Settings({ orgId }: { orgId: string }) {
                   <CardDescription>Basic configuration for your workshop.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
-                  <SettingField label="Workshop Name" name="siteName" value={formData.siteName} placeholder="MASS Car Workshop" icon={Building2} />
+                  <SettingField label="Workshop Name" name="siteName" value={formData.siteName} placeholder="MASS OSS" icon={Building2} />
                   
                   <div className="grid grid-cols-2 gap-4">
                     <SettingField label="Timezone" name="timezone" value={formData.timezone} placeholder="Africa/Nairobi" icon={Clock} />
@@ -304,7 +304,7 @@ export function Settings({ orgId }: { orgId: string }) {
                     <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-3">Google Preview</p>
                     <div className="space-y-1">
                       <p className="text-blue-400 text-lg font-medium hover:underline cursor-pointer">
-                        {formData.seoTitle || "MASS Car Workshop — Hargeisa"}
+                        {formData.seoTitle || "MASS OSS — Hargeisa"}
                       </p>
                       <p className="text-emerald-500 text-sm">mass-workshop.vercel.app</p>
                       <p className="text-sm text-muted-foreground line-clamp-2">

@@ -41,8 +41,7 @@ export async function generateEstimatePDF(data: EstimateData): Promise<Blob> {
   
   doc.setTextColor(0, 0, 0)
   doc.setFontSize(24)
-  doc.setFont('helvetica', 'bold')
-  doc.text('MASS CAR WORKSHOP', 20, 20)
+  doc.text('MASS OSS', 20, 20)
   
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')

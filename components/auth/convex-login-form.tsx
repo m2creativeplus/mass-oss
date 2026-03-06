@@ -66,9 +66,9 @@ export function ConvexLoginForm() {
             <Car className="w-8 h-8 text-white" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold text-white">MASS Car Workshop</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">MASS OSS</CardTitle>
             <CardDescription className="text-slate-400">
-              Vehicle Workshop Management System
+              Intelligent Workshop Operating System
             </CardDescription>
           </div>
         </CardHeader>

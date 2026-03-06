@@ -52,8 +52,8 @@ export function LoginForm({ onLogin, isLoading = false, error }: LoginFormProps)
               <Car className="w-7 h-7 text-white" />
             </div>
             <div className="text-left">
-              <h1 className="text-2xl font-bold text-white">MASS Car Workshop</h1>
-              <p className="text-sm text-slate-300">Vehicle Workshop Management System</p>
+              <h1 className="text-2xl font-bold text-white">MASS OSS</h1>
+              <p className="text-sm text-slate-300">Intelligent Workshop Operating System</p>
             </div>
           </div>
         </div>
