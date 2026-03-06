@@ -1,11 +1,15 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import * as React from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
 import { 
   Plus, 
   Calendar as CalendarIcon,
@@ -15,398 +19,517 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Filter,
+  Phone,
+  ArrowRight,
+  Timer,
+  Wrench,
+  DollarSign,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Play,
+  AlertTriangle
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
-
-interface Appointment {
-  id: string
-  _id?: string
-  customer: string
-  vehicle: string
-  service: string
-  technician: string
-  date: string
-  time: string
-  duration: number
-  status: "scheduled" | "in-progress" | "completed" | "cancelled"
-  priority: "normal" | "urgent" | "high" | "low"
-  estimatedCost: number
-}
-
-const mockAppointments: Appointment[] = [
-  {
-    id: "1",
-    customer: "Mohamed Ahmed",
-    vehicle: "Toyota Land Cruiser (ABC-1234)",
-    service: "Full Service + Oil Change",
-    technician: "John Doe",
-    date: "2025-12-26",
-    time: "09:00",
-    duration: 120,
-    status: "scheduled",
-    priority: "normal",
-    estimatedCost: 450
-  },
-  {
-    id: "2",
-    customer: "Sarah Hassan",
-    vehicle: "Honda Civic (XYZ-5678)",
-    service: "Brake System Repair",
-    technician: "Mike Ross",
-    date: "2025-12-26",
-    time: "11:00",
-    duration: 180,
-    status: "in-progress",
-    priority: "urgent",
-    estimatedCost: 780
-  },
-  {
-    id: "3",
-    customer: "Ahmed Ali",
-    vehicle: "Ford F-150 (DEF-9012)",
-    service: "Tire Replacement (4x)",
-    technician: "Sarah Smith",
-    date: "2025-12-26",
-    time: "14:00",
-    duration: 90,
-    status: "scheduled",
-    priority: "normal",
-    estimatedCost: 600
-  },
-  {
-    id: "4",
-    customer: "Fatima Omar",
-    vehicle: "Nissan Patrol (GHI-3456)",
-    service: "Engine Diagnostic",
-    technician: "John Doe",
-    date: "2025-12-27",
-    time: "10:00",
-    duration: 60,
-    status: "scheduled",
-    priority: "urgent",
-    estimatedCost: 250
-  },
-]
+import { useOrganization } from "@/components/providers/organization-provider"
+import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
+import { format, addDays, startOfWeek, isSameDay } from "date-fns"
 
 interface AppointmentsProps {
   orgId?: string
 }
 
-export function Appointments({ orgId = "demo" }: AppointmentsProps) {
-  const isDemo = orgId.startsWith("demo-")
+export function Appointments({ orgId: propOrgId }: AppointmentsProps) {
+  const { organization } = useOrganization()
+  const orgId = propOrgId || organization?.slug || "mass-hargeisa"
 
   // Convex Hooks
-  const convexAppointments = useQuery(api.functions.getAppointments, isDemo ? "skip" : { orgId })
-  const deleteAppointment = useMutation(api.functions.deleteAppointment)
+  const appointments = useQuery(api.functions.getAppointments, { orgId })
+  const customers = useQuery(api.functions.getCustomers, { orgId })
+  const vehicles = useQuery(api.functions.getVehicles, { orgId })
+  const createAppointment = useMutation(api.functions.createAppointment)
 
-  const [localAppointments, setLocalAppointments] = useState<Appointment[]>(mockAppointments)
+  // UI State
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day")
-  const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [viewMode, setViewMode] = useState<"day" | "week">("day")
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [showCreate, setShowCreate] = useState(false)
+  const [newApt, setNewApt] = useState({
+    customerId: "",
+    vehicleId: "",
+    serviceType: "",
+    appointmentDate: format(new Date(), "yyyy-MM-dd"),
+    time: "09:00",
+    durationMinutes: 60,
+    priority: "normal" as "low" | "normal" | "high" | "urgent",
+    customerNotes: "",
+  })
 
-  // Derived State
-  const appointments = isDemo ? localAppointments : (convexAppointments || []).map((apt: any) => ({
-    id: apt.appointmentNumber || apt._id,
-    _id: apt._id,
-    customer: "Unknown Customer", // Placeholder until joined
-    vehicle: "Unknown Vehicle",   // Placeholder until joined
-    service: apt.serviceType || "Service",
-    technician: "Unassigned",     // Placeholder
-    date: apt.appointmentDate,
-    time: "09:00",               // Placeholder as schematic might not have time field separate or formatted differently
-    duration: apt.durationMinutes || 60,
-    status: apt.status as any,
-    priority: apt.priority as any,
-    estimatedCost: 0
-  }))
+  // Helpers
+  const getCustomerName = (id: string) => {
+    const c = customers?.find(cust => cust._id === id)
+    return c ? `${c.firstName} ${c.lastName}` : "Unknown"
+  }
+  const getCustomerPhone = (id: string) => {
+    const c = customers?.find(cust => cust._id === id)
+    return c?.phone || ""
+  }
+  const getVehicleInfo = (id: string) => {
+    const v = vehicles?.find(veh => veh._id === id)
+    return v ? `${v.year} ${v.make} ${v.model}` : "Unknown Vehicle"
+  }
+  const getVehiclePlate = (id: string) => {
+    const v = vehicles?.find(veh => veh._id === id)
+    return v?.licensePlate || ""
+  }
 
-  const getStatusConfig = (status: Appointment["status"]) => {
-    switch (status) {
-      case "scheduled":
-        return { 
-          color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", 
-          icon: CalendarIcon,
-          label: "Scheduled" 
-        }
-      case "in-progress":
-        return { 
-          color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", 
-          icon: Clock,
-          label: "In Progress" 
-        }
-      case "completed":
-        return { 
-          color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", 
-          icon: CheckCircle2,
-          label: "Completed" 
-        }
-      case "cancelled":
-        return { 
-          color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", 
-          icon: XCircle,
-          label: "Cancelled" 
-        }
-      default:
-         return { 
-          color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400", 
-          icon: AlertCircle,
-          label: status 
-        }
+  // Filtered customer vehicles
+  const customerVehicles = useMemo(() => {
+    if (!newApt.customerId) return []
+    return vehicles?.filter(v => v.customerId === newApt.customerId) || []
+  }, [newApt.customerId, vehicles])
+
+  // Filter appointments
+  const filteredAppointments = useMemo(() => {
+    if (!appointments) return []
+    let filtered = [...appointments]
+    
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(apt => apt.status === filterStatus)
+    }
+    
+    if (viewMode === "day") {
+      const dateStr = format(selectedDate, "yyyy-MM-dd")
+      filtered = filtered.filter(apt => apt.appointmentDate?.startsWith(dateStr))
+    } else if (viewMode === "week") {
+      const weekStart = startOfWeek(selectedDate)
+      const weekEnd = addDays(weekStart, 6)
+      filtered = filtered.filter(apt => {
+        const d = new Date(apt.appointmentDate)
+        return d >= weekStart && d <= weekEnd
+      })
+    }
+    
+    return filtered.sort((a, b) => (a.appointmentDate || "").localeCompare(b.appointmentDate || ""))
+  }, [appointments, filterStatus, viewMode, selectedDate])
+
+  // Stats
+  const todayStr = format(new Date(), "yyyy-MM-dd")
+  const todayCount = appointments?.filter(a => a.appointmentDate?.startsWith(todayStr)).length || 0
+  const scheduledCount = appointments?.filter(a => a.status === "scheduled").length || 0
+  const inProgressCount = appointments?.filter(a => a.status === "in-progress").length || 0
+
+  const handleCreate = async () => {
+    if (!newApt.customerId || !newApt.vehicleId) {
+      toast.error("Please select a customer and vehicle")
+      return
+    }
+    try {
+      await createAppointment({
+        orgId,
+        customerId: newApt.customerId as Id<"customers">,
+        vehicleId: newApt.vehicleId as Id<"vehicles">,
+        appointmentDate: `${newApt.appointmentDate}T${newApt.time}:00`,
+        durationMinutes: newApt.durationMinutes,
+        serviceType: newApt.serviceType || "General Service",
+        priority: newApt.priority,
+        customerNotes: newApt.customerNotes || undefined,
+      })
+      toast.success("Appointment scheduled!")
+      setShowCreate(false)
+    } catch (error) {
+      toast.error("Failed to create appointment")
     }
   }
 
-  const filteredAppointments = appointments.filter(apt => {
-    if (filterStatus !== "all" && apt.status !== filterStatus) return false
-    if (viewMode === "day") {
-      return apt.date === selectedDate.toISOString().split('T')[0]
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case "scheduled":
+        return { icon: CalendarIcon, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20", label: "Scheduled" }
+      case "in-progress":
+        return { icon: Play, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20", label: "In Progress" }
+      case "completed":
+        return { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", label: "Completed" }
+      case "cancelled":
+        return { icon: XCircle, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20", label: "Cancelled" }
+      case "no-show":
+        return { icon: AlertTriangle, color: "text-zinc-500", bg: "bg-zinc-500/10", border: "border-zinc-500/20", label: "No-Show" }
+      default:
+        return { icon: AlertCircle, color: "text-zinc-500", bg: "bg-white/5", border: "border-white/5", label: status }
     }
-    return true
-  })
+  }
 
-  // Basic stats logic (simplified date checking for "today")
-  const todayStr = new Date().toISOString().split('T')[0]
-  const todayAppointments = appointments.filter(apt => apt.date === todayStr)
-  const upcomingCount = appointments.filter(apt => apt.status === "scheduled").length
-  const inProgressCount = appointments.filter(apt => apt.status === "in-progress").length
+  const getPriorityConfig = (priority: string) => {
+    switch (priority) {
+      case "urgent": return { color: "text-red-500 bg-red-500/10 border-red-500/20" }
+      case "high": return { color: "text-amber-500 bg-amber-500/10 border-amber-500/20" }
+      case "low": return { color: "text-zinc-400 bg-zinc-500/10 border-zinc-500/20" }
+      default: return { color: "text-blue-400 bg-blue-500/10 border-blue-500/20" }
+    }
+  }
+
+  const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } }
+  const item: any = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } } }
+
+  // Time slots for the day view timeline
+  const TIME_SLOTS = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Service Schedule</h1>
-          <p className="text-muted-foreground mt-1">Manage appointments and service bookings</p>
-          {isDemo && <Badge variant="outline" className="mt-1 text-xs border-orange-500 text-orange-500">Demo Mode</Badge>}
+          <h2 className="text-3xl font-black tracking-tight text-white uppercase italic">SERVICE SCHEDULE</h2>
+          <p className="text-muted-foreground mt-1">
+            Manage appointments, bookings, and technician assignments.
+          </p>
         </div>
-        <Button className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20">
-          <Plus className="mr-2 h-4 w-4" />
-          New Appointment
-        </Button>
+        <Dialog open={showCreate} onOpenChange={setShowCreate}>
+          <DialogTrigger asChild>
+            <Button className="bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 px-8 h-12">
+              <Plus className="mr-2 h-5 w-5" /> Book Appointment
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-zinc-900 border-white/10 max-w-xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-black uppercase">New Appointment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-widest opacity-50">Customer</Label>
+                <Select value={newApt.customerId} onValueChange={v => setNewApt({...newApt, customerId: v, vehicleId: ""})}>
+                  <SelectTrigger className="bg-white/5 border-white/10 h-12"><SelectValue placeholder="Select customer..." /></SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-white/10">
+                    {customers?.map(c => (
+                      <SelectItem key={c._id} value={c._id}>
+                        <div className="flex items-center gap-2"><User className="h-3 w-3 text-amber-500/50" />{c.firstName} {c.lastName}</div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {newApt.customerId && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                  <Label className="text-xs uppercase tracking-widest opacity-50">Vehicle</Label>
+                  <Select value={newApt.vehicleId} onValueChange={v => setNewApt({...newApt, vehicleId: v})}>
+                    <SelectTrigger className="bg-white/5 border-white/10 h-12"><SelectValue placeholder="Select vehicle..." /></SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-white/10">
+                      {customerVehicles.map(v => (
+                        <SelectItem key={v._id} value={v._id}>
+                          <div className="flex items-center gap-2"><Car className="h-3 w-3 text-amber-500/50" />{v.year} {v.make} {v.model} ({v.licensePlate})</div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </motion.div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-widest opacity-50">Service Type</Label>
+                <Input value={newApt.serviceType} onChange={e => setNewApt({...newApt, serviceType: e.target.value})} placeholder="e.g. Full Service, Oil Change" className="bg-white/5 border-white/10 h-12" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-widest opacity-50">Date</Label>
+                  <Input type="date" value={newApt.appointmentDate} onChange={e => setNewApt({...newApt, appointmentDate: e.target.value})} className="bg-white/5 border-white/10" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-widest opacity-50">Time</Label>
+                  <Input type="time" value={newApt.time} onChange={e => setNewApt({...newApt, time: e.target.value})} className="bg-white/5 border-white/10" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-widest opacity-50">Duration</Label>
+                  <Select value={String(newApt.durationMinutes)} onValueChange={v => setNewApt({...newApt, durationMinutes: parseInt(v)})}>
+                    <SelectTrigger className="bg-white/5 border-white/10"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-white/10">
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="90">1.5 hours</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="180">3 hours</SelectItem>
+                      <SelectItem value="240">4 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-widest opacity-50">Priority</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["low", "normal", "high", "urgent"] as const).map(p => (
+                    <Button key={p} type="button" variant="outline" size="sm"
+                      className={cn("capitalize h-10 border-white/10", newApt.priority === p && "bg-amber-500 text-black border-amber-500 font-bold")}
+                      onClick={() => setNewApt({...newApt, priority: p})}
+                    >{p}</Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-widest opacity-50">Customer Notes</Label>
+                <Input value={newApt.customerNotes} onChange={e => setNewApt({...newApt, customerNotes: e.target.value})} placeholder="Any special instructions..." className="bg-white/5 border-white/10 h-12" />
+              </div>
+
+              <Button onClick={handleCreate} className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                Confirm Booking
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="glass-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Today</p>
-                <h3 className="text-2xl font-bold mt-1">{todayAppointments.length}</h3>
-              </div>
-              <CalendarIcon className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* KPI Cards */}
+      <motion.div variants={container} initial="hidden" animate="show" className="grid gap-4 md:grid-cols-4">
+        <motion.div variants={item}>
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><CalendarIcon className="h-20 w-20 text-blue-500" /></div>
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Today</p>
+              <h2 className="text-4xl font-black text-white mt-1">{todayCount}</h2>
+              <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(), "EEEE, MMM d")}</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={item}>
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><Clock className="h-20 w-20 text-purple-500" /></div>
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Scheduled</p>
+              <h2 className="text-4xl font-black text-white mt-1">{scheduledCount}</h2>
+              <p className="text-[10px] text-muted-foreground mt-1">Upcoming bookings</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={item}>
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><Play className="h-20 w-20 text-amber-500" /></div>
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">In Progress</p>
+              <h2 className="text-4xl font-black text-white mt-1">{inProgressCount}</h2>
+              <p className="text-[10px] text-muted-foreground mt-1">Active services</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+        <motion.div variants={item}>
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><CheckCircle2 className="h-20 w-20 text-emerald-500" /></div>
+            <CardContent className="p-6">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Bookings</p>
+              <h2 className="text-4xl font-black text-white mt-1">{appointments?.length || 0}</h2>
+              <p className="text-[10px] text-muted-foreground mt-1">All time</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
-        <Card className="glass-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Scheduled</p>
-                <h3 className="text-2xl font-bold mt-1">{upcomingCount}</h3>
-              </div>
-              <Clock className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">In Progress</p>
-                <h3 className="text-2xl font-bold mt-1">{inProgressCount}</h3>
-              </div>
-              <AlertCircle className="h-8 w-8 text-amber-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Est. Revenue</p>
-                <h3 className="text-2xl font-bold mt-1">
-                  ${filteredAppointments.reduce((sum, apt) => sum + apt.estimatedCost, 0).toLocaleString()}
-                </h3>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Main Content: Calendar + Schedule */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Select Date</CardTitle>
+        {/* Calendar Sidebar */}
+        <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-amber-500" /> Calendar
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={(date) => date && setSelectedDate(date)}
-              className="rounded-md border"
+              className="rounded-xl border border-white/5"
             />
             
-            <div className="mt-4 space-y-2">
-              <div className="flex gap-2">
-                {["day", "week", "month"].map((mode) => (
-                  <Button
-                    key={mode}
-                    size="sm"
-                    variant={viewMode === mode ? "default" : "outline"}
-                    onClick={() => setViewMode(mode as any)}
-                    className="flex-1 capitalize"
-                  >
-                    {mode}
-                  </Button>
-                ))}
-              </div>
-              
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
+            <Separator className="bg-white/5" />
+
+            <div className="flex gap-2">
+              {(["day", "week"] as const).map(mode => (
+                <Button key={mode} size="sm" variant={viewMode === mode ? "default" : "outline"}
+                  onClick={() => setViewMode(mode)}
+                  className={cn("flex-1 capitalize rounded-xl h-10", viewMode === mode && "bg-amber-500 hover:bg-amber-600 text-black font-bold")}
+                >{mode} View</Button>
+              ))}
+            </div>
+
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="bg-white/5 border-white/10 rounded-xl">
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-white/10">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Quick date navigation */}
+            <div className="flex gap-2 pt-2">
+              <Button variant="ghost" size="sm" className="flex-1 text-xs hover:bg-white/5"
+                onClick={() => setSelectedDate(new Date())}>Today</Button>
+              <Button variant="ghost" size="sm" className="flex-1 text-xs hover:bg-white/5"
+                onClick={() => setSelectedDate(addDays(new Date(), 1))}>Tomorrow</Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Appointments List */}
+        {/* Schedule Timeline */}
         <div className="lg:col-span-2 space-y-4">
-          <Card className="glass-card">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>
-                  {viewMode === "day" && `Appointments for ${selectedDate.toLocaleDateString()}`}
-                  {viewMode === "week" && "This Week's Appointments"}
-                  {viewMode === "month" && "This Month's Appointments"}
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle className="text-lg font-bold">
+                  {viewMode === "day" ? format(selectedDate, "EEEE, MMMM d, yyyy") : `Week of ${format(startOfWeek(selectedDate), "MMM d")}`}
                 </CardTitle>
-                <Badge variant="outline">{filteredAppointments.length} total</Badge>
+                <CardDescription>{filteredAppointments.length} appointment{filteredAppointments.length !== 1 ? "s" : ""}</CardDescription>
+              </div>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10"
+                  onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10"
+                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </CardHeader>
           </Card>
 
-          {filteredAppointments.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="p-12 text-center">
-                <CalendarIcon className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-20" />
-                <p className="text-muted-foreground">No appointments for this date.</p>
+          {/* Appointments List */}
+          {appointments === undefined ? (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+            </div>
+          ) : filteredAppointments.length === 0 ? (
+            <Card className="border-white/5 bg-black/40 backdrop-blur-xl">
+              <CardContent className="py-16 text-center">
+                <CalendarIcon className="h-16 w-16 mx-auto mb-4 opacity-10" />
+                <p className="text-lg font-bold text-white">No appointments</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {viewMode === "day" ? `Nothing scheduled for ${format(selectedDate, "MMMM d")}` : "No bookings this week"}
+                </p>
+                <Button variant="link" className="text-amber-500 mt-2" onClick={() => setShowCreate(true)}>
+                  Book an appointment
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            filteredAppointments.map((appointment, index) => {
-              const statusConfig = getStatusConfig(appointment.status)
-              const StatusIcon = statusConfig.icon
-              
-              return (
-                <Card 
-                  key={appointment.id}
-                  className={cn(
-                    "glass-card hover:shadow-md transition-all duration-200 animate-slide-in-left",
-                    appointment.priority === "urgent" && "border-l-4 border-l-red-500"
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex gap-4 flex-1">
-                        {/* Time Block */}
-                        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-orange-500 to-red-600 text-white rounded-lg p-3 min-w-[80px]">
-                          <span className="text-2xl font-bold">{appointment.time}</span>
-                          <span className="text-xs opacity-90">{appointment.duration} min</span>
-                        </div>
+            <AnimatePresence mode="wait">
+              <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
+                {filteredAppointments.map((apt: any, index: number) => {
+                  const statusConfig = getStatusConfig(apt.status)
+                  const StatusIcon = statusConfig.icon
+                  const priorityConfig = getPriorityConfig(apt.priority)
+                  const aptTime = apt.appointmentDate?.includes("T") 
+                    ? format(new Date(apt.appointmentDate), "h:mm a")
+                    : "TBD"
+                  const aptDate = apt.appointmentDate 
+                    ? format(new Date(apt.appointmentDate), "MMM d")
+                    : "—"
+                  
+                  return (
+                    <motion.div key={apt._id} variants={item}>
+                      <Card className={cn(
+                        "border-white/5 bg-black/40 backdrop-blur-xl hover:bg-white/5 transition-all duration-300 group",
+                        apt.priority === "urgent" && "border-l-4 border-l-red-500",
+                        apt.priority === "high" && "border-l-4 border-l-amber-500"
+                      )}>
+                        <CardContent className="p-0">
+                          <div className="flex">
+                            {/* Time Block */}
+                            <div className="flex flex-col items-center justify-center bg-gradient-to-b from-amber-500/20 to-amber-600/5 px-5 py-5 min-w-[100px] border-r border-white/5">
+                              <Timer className="h-4 w-4 text-amber-500/60 mb-1" />
+                              <span className="text-lg font-black text-white">{aptTime}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase mt-0.5">{apt.durationMinutes || 60} min</span>
+                              {viewMode === "week" && (
+                                <span className="text-[10px] text-amber-500/60 mt-1 font-bold">{aptDate}</span>
+                              )}
+                            </div>
 
-                        {/* Details */}
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-lg">{appointment.service}</h4>
-                            {appointment.priority === "urgent" && (
-                              <Badge variant="destructive" className="text-xs">URGENT</Badge>
-                            )}
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <User className="h-4 w-4" />
-                              {appointment.customer}
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Car className="h-4 w-4" />
-                              {appointment.vehicle}
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <User className="h-4 w-4" />
-                              Tech: {appointment.technician}
-                            </div>
-                            <div className="flex items-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
-                              ${appointment.estimatedCost}
-                            </div>
-                          </div>
+                            {/* Details */}
+                            <div className="flex-1 p-5">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 space-y-3">
+                                  {/* Service + Priority */}
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-black text-white text-lg italic">{apt.serviceType || "Service"}</h4>
+                                    {apt.priority && apt.priority !== "normal" && (
+                                      <Badge variant="outline" className={cn("text-[10px] uppercase font-bold", priorityConfig.color)}>
+                                        {apt.priority}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Customer & Vehicle Info */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/10 shrink-0">
+                                        <User className="h-3.5 w-3.5 text-amber-500" />
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-bold text-white">{getCustomerName(apt.customerId)}</p>
+                                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                          <Phone className="h-2 w-2" /> {getCustomerPhone(apt.customerId) || "—"}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 shrink-0">
+                                        <Car className="h-3.5 w-3.5 text-white/60" />
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-white">{getVehicleInfo(apt.vehicleId)}</p>
+                                        <p className="text-[10px] text-amber-500/60 font-mono">{getVehiclePlate(apt.vehicleId)}</p>
+                                      </div>
+                                    </div>
+                                  </div>
 
-                          <div className="flex items-center gap-2 pt-2">
-                            <Badge className={statusConfig.color}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
-                              {statusConfig.label}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
+                                  {apt.customerNotes && (
+                                    <p className="text-xs text-muted-foreground italic border-l-2 border-white/10 pl-3">"{apt.customerNotes}"</p>
+                                  )}
+                                </div>
 
-                      {/* Actions */}
-                      <div className="flex flex-col gap-2">
-                        {appointment.status === "scheduled" && (
-                          <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600">
-                            Start
-                          </Button>
-                        )}
-                        {appointment.status === "in-progress" && (
-                          <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
-                            Complete
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline">
-                          Details
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={async () => {
-                            if (isDemo) {
-                              setLocalAppointments(localAppointments.filter(a => a.id !== appointment.id))
-                            } else {
-                              if ((appointment as any)._id) {
-                                await deleteAppointment({ id: (appointment as any)._id })
-                              }
-                            }
-                          }}
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })
+                                {/* Status + Actions */}
+                                <div className="flex flex-col items-end gap-3">
+                                  <div className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold", statusConfig.bg, statusConfig.border, statusConfig.color)}>
+                                    <StatusIcon className="h-3.5 w-3.5" />
+                                    {statusConfig.label}
+                                  </div>
+                                  
+                                  <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {apt.status === "scheduled" && (
+                                      <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3 text-xs font-bold rounded-lg">
+                                        <Play className="h-3 w-3 mr-1" /> Start
+                                      </Button>
+                                    )}
+                                    {apt.status === "in-progress" && (
+                                      <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white h-8 px-3 text-xs font-bold rounded-lg">
+                                        <CheckCircle2 className="h-3 w-3 mr-1" /> Done
+                                      </Button>
+                                    )}
+                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-500/10 hover:text-red-500 rounded-lg">
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )
+                })}
+              </motion.div>
+            </AnimatePresence>
           )}
         </div>
       </div>
