@@ -1,253 +1,270 @@
 "use client"
 
-import { useState } from "react"
+import * as React from "react"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckCircle, XCircle, Printer, Download, ArrowLeft, Clock } from "lucide-react"
+import { 
+  CheckCircle, 
+  XCircle, 
+  Printer, 
+  Download, 
+  ArrowLeft, 
+  Clock, 
+  User, 
+  Car, 
+  FileText,
+  Calendar,
+  ShieldCheck,
+  AlertCircle
+} from "lucide-react"
+import { format } from "date-fns"
+import { motion } from "framer-motion"
+import { toast } from "sonner"
 
-// Types
 interface EstimateViewerProps {
-  estimateId?: string
-  onBack?: () => void
+  estimateId: string
+  onBack: () => void
 }
 
-interface EstimateItem {
-  id: string
-  type: "part" | "labor" | "service"
-  description: string
-  quantity: number
-  unitPrice: number
-  totalPrice: number
-  approved: boolean
-}
-
-interface EstimateData {
-  id: string
-  number: string
-  customerName: string
-  vehicleInfo: string
-  date: string
-  expiryDate: string
-  status: "draft" | "sent" | "viewed" | "approved" | "declined" | "expired"
-  subtotal: number
-  tax: number
-  total: number
-  items: EstimateItem[]
-  notes?: string
-}
-
-// Mock data
-const mockEstimate: EstimateData = {
-  id: "est-001",
-  number: "EST-2023-001",
-  customerName: "Ahmed Hassan",
-  vehicleInfo: "2018 Toyota Camry • Black • SOM-1234",
-  date: "2023-06-15",
-  expiryDate: "2023-06-30",
-  status: "sent",
-  subtotal: 285.0,
-  tax: 14.25,
-  total: 299.25,
-  items: [
-    {
-      id: "item-1",
-      type: "service",
-      description: "Oil Change Service",
-      quantity: 1,
-      unitPrice: 45.0,
-      totalPrice: 45.0,
-      approved: false,
-    },
-    {
-      id: "item-2",
-      type: "part",
-      description: "Oil Filter",
-      quantity: 1,
-      unitPrice: 15.0,
-      totalPrice: 15.0,
-      approved: false,
-    },
-    {
-      id: "item-3",
-      type: "labor",
-      description: "Brake Inspection",
-      quantity: 1,
-      unitPrice: 75.0,
-      totalPrice: 75.0,
-      approved: false,
-    },
-    {
-      id: "item-4",
-      type: "part",
-      description: "Front Brake Pads",
-      quantity: 1,
-      unitPrice: 150.0,
-      totalPrice: 150.0,
-      approved: false,
-    },
-  ],
-  notes: "Customer requested to be notified before any additional work.",
-}
-
-// Status badge component
-const StatusBadge = ({ status }: { status: EstimateData["status"] }) => {
-  const statusConfig = {
-    draft: { label: "Draft", variant: "outline" },
-    sent: { label: "Sent", variant: "secondary" },
-    viewed: { label: "Viewed", variant: "secondary" },
-    approved: { label: "Approved", variant: "success" },
-    declined: { label: "Declined", variant: "destructive" },
-    expired: { label: "Expired", variant: "outline" },
-  }
-
-  const config = statusConfig[status]
-
-  return <Badge variant={config.variant as any}>{config.label}</Badge>
-}
-
-// Main component
 export function EstimateViewer({ estimateId, onBack }: EstimateViewerProps) {
-  const [estimate] = useState<EstimateData>(mockEstimate)
-  const [approvedItems, setApprovedItems] = useState<string[]>([])
+  // Convex Hooks
+  const estimate = useQuery(api.functions.getEstimateById, { estimateId: estimateId as Id<"estimates"> })
+  const updateStatus = useMutation(api.functions.updateEstimateStatus)
+  
+  // Data for resolving IDs
+  const orgId = "mass-hargeisa"
+  const customers = useQuery(api.functions.getCustomers, { orgId })
+  const vehicles = useQuery(api.functions.getVehicles, { orgId })
 
-  // In a real app, we would fetch the estimate data based on estimateId
+  const customer = customers?.find(c => c._id === estimate?.customerId)
+  const vehicle = vehicles?.find(v => v._id === estimate?.vehicleId)
 
-  const handleApproveItem = (itemId: string) => {
-    setApprovedItems((prev) => (prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]))
+  const handleStatusUpdate = async (status: "approved" | "declined") => {
+    try {
+      await updateStatus({ estimateId: estimateId as Id<"estimates">, status })
+      toast.success(`Estimate ${status} successfully`)
+    } catch (error) {
+      toast.error("Failed to update status")
+    }
   }
 
-  const handleApproveAll = () => {
-    setApprovedItems(estimate.items.map((item) => item.id))
+  if (estimate === undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+        <Clock className="h-10 w-10 text-amber-500 mb-4 h-spin" />
+        <p className="text-muted-foreground">Loading estimate details...</p>
+      </div>
+    )
   }
 
-  const handleDeclineAll = () => {
-    setApprovedItems([])
+  if (!estimate) {
+    return (
+      <Card className="max-w-md mx-auto mt-20 border-red-500/20 bg-red-500/5">
+        <CardContent className="pt-6 text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-bold">Estimate not found</h3>
+          <p className="text-muted-foreground mb-4">The estimate you are trying to view no longer exists.</p>
+          <Button onClick={onBack} variant="outline">Back to Dashboard</Button>
+        </CardContent>
+      </Card>
+    )
   }
 
-  const isItemApproved = (itemId: string) => approvedItems.includes(itemId)
+  const statusColor: Record<string, string> = {
+    draft: "secondary",
+    sent: "warning",
+    viewed: "info",
+    approved: "success",
+    declined: "destructive",
+    expired: "destructive",
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount)
+  }
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-          <h1 className="text-2xl font-bold">Estimate #{estimate.number}</h1>
-          <StatusBadge status={estimate.status} />
-        </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-4xl mx-auto space-y-6"
+    >
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <Button variant="ghost" onClick={onBack} className="hover:bg-white/10">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Estimates
+        </Button>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Printer className="mr-2 h-4 w-4" />
-            Print
+          <Button variant="outline" className="border-white/10 hover:bg-white/5">
+            <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Download PDF
+          <Button variant="outline" className="border-white/10 hover:bg-white/5">
+            <Download className="mr-2 h-4 w-4" /> Export PDF
           </Button>
+          {estimate.status !== "approved" && estimate.status !== "declined" && (
+            <>
+              <Button 
+                variant="destructive" 
+                onClick={() => handleStatusUpdate("declined")}
+                className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-red-500/20"
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Decline
+              </Button>
+              <Button 
+                onClick={() => handleStatusUpdate("approved")}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
+              >
+                <CheckCircle className="mr-2 h-4 w-4" /> Approve
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between">
-            <div>
-              <CardTitle>Customer Information</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">{estimate.customerName}</p>
-              <p className="text-sm text-muted-foreground">{estimate.vehicleInfo}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="md:col-span-2 border-white/5 bg-black/40 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-amber-500 to-amber-600" />
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-2xl font-bold">{estimate.estimateNumber}</CardTitle>
+                <Badge variant={(statusColor[estimate.status] as any) || "default"} className="capitalize">
+                  {estimate.status}
+                </Badge>
+              </div>
+              <CardDescription className="flex items-center">
+                <Calendar className="mr-1 h-3 w-3" /> 
+                Created on {format(new Date(estimate._creationTime), "MMMM d, yyyy")}
+              </CardDescription>
             </div>
             <div className="text-right">
-              <div className="flex items-center gap-2 mb-1">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Created: {estimate.date}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Expires: {estimate.expiryDate}</p>
-              </div>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Total Amount</p>
+              <p className="text-3xl font-black text-amber-500">{formatCurrency(estimate.totalAmount)}</p>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Unit Price</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-center">Approve</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {estimate.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{item.description}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${item.totalPrice.toFixed(2)}</TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant={isItemApproved(item.id) ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleApproveItem(item.id)}
-                    >
-                      {isItemApproved(item.id) ? <CheckCircle className="h-4 w-4" /> : "Approve"}
-                    </Button>
-                  </TableCell>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="w-[50%]">Item & Description</TableHead>
+                  <TableHead className="text-center">Qty/Hrs</TableHead>
+                  <TableHead className="text-right">Rate</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {estimate.lineItems.map((item: any, idx: number) => (
+                  <TableRow key={idx} className="border-white/5 hover:bg-white/5 transition-colors">
+                    <TableCell>
+                      <div className="font-medium">{item.description}</div>
+                      <Badge variant="outline" className="text-[10px] uppercase mt-1 opacity-50">
+                        {item.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-mono">{item.quantity}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(item.unitPrice)}</TableCell>
+                    <TableCell className="text-right font-bold text-white">{formatCurrency(item.totalPrice)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
-          <div className="mt-6 flex justify-end">
-            <div className="w-1/3">
-              <div className="flex justify-between py-2">
-                <span>Subtotal:</span>
-                <span>${estimate.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span>Tax (5%):</span>
-                <span>${estimate.tax.toFixed(2)}</span>
-              </div>
-              <Separator className="my-2" />
-              <div className="flex justify-between py-2 font-bold">
-                <span>Total:</span>
-                <span>${estimate.total.toFixed(2)}</span>
+            <div className="flex justify-end pt-4 border-t border-white/5">
+              <div className="w-full sm:w-64 space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(estimate.subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Tax (5.0%)</span>
+                  <span>{formatCurrency(estimate.taxAmount)}</span>
+                </div>
+                <Separator className="bg-white/10 my-2" />
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Due</span>
+                  <span className="text-amber-500">{formatCurrency(estimate.totalAmount)}</span>
+                </div>
               </div>
             </div>
+
+            {estimate.workDescription && (
+              <div className="pt-6 border-t border-white/5 space-y-2">
+                <h4 className="text-sm font-semibold flex items-center">
+                  <FileText className="mr-2 h-4 w-4 text-amber-500/50" /> Notes & Work Description
+                </h4>
+                <p className="text-sm text-muted-foreground bg-white/5 p-4 rounded-xl border border-white/5 italic">
+                  "{estimate.workDescription}"
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <User className="mr-2 h-4 w-4 text-amber-500/50" /> Customer
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {customer ? (
+                <div className="space-y-1">
+                  <p className="font-bold text-lg">{customer.firstName} {customer.lastName}</p>
+                  <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                  <p className="text-sm text-muted-foreground">{customer.email}</p>
+                  <p className="text-xs text-muted-foreground mt-2 opacity-50">{customer.address}</p>
+                </div>
+              ) : (
+                <div className="animate-pulse h-12 bg-white/5 rounded-md" />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <Car className="mr-2 h-4 w-4 text-amber-500/50" /> Vehicle Detail
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {vehicle ? (
+                <div className="space-y-1">
+                  <p className="font-bold text-lg">{vehicle.year} {vehicle.make} {vehicle.model}</p>
+                  <p className="text-sm text-amber-500 font-mono">{vehicle.licensePlate}</p>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 text-[10px] text-muted-foreground uppercase tracking-widest">
+                    <ShieldCheck className="h-3 w-3 text-emerald-500" /> Inspected by Tech
+                  </div>
+                </div>
+              ) : (
+                <div className="animate-pulse h-12 bg-white/5 rounded-md" />
+              )}
+            </CardContent>
+          </Card>
+          
+          <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 space-y-4">
+             <div className="flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 text-amber-500 mt-1 flex-shrink-0" />
+                <div>
+                   <p className="text-sm font-bold text-amber-200">Quote Accuracy Guarantee</p>
+                   <p className="text-xs text-amber-200/60 leading-relaxed mt-1">
+                      This estimate is valid for 15 days. Final price may vary slightly based on unforeseen mechanical discoveries.
+                   </p>
+                </div>
+             </div>
           </div>
-
-          {estimate.notes && (
-            <div className="mt-6 bg-muted p-4 rounded-md">
-              <h3 className="font-medium mb-2">Notes</h3>
-              <p className="text-sm">{estimate.notes}</p>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleDeclineAll}>
-            <XCircle className="mr-2 h-4 w-4" />
-            Decline All
-          </Button>
-          <Button onClick={handleApproveAll}>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Approve All
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </motion.div>
   )
 }
 
-// Default export
 export default EstimateViewer

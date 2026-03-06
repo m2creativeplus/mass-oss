@@ -371,7 +371,7 @@ export function Customers({ orgId }: { orgId: string }) {
         {/* Pagination Footer */}
         <div className="bg-slate-50 dark:bg-slate-800 px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center sm:px-6">
            <div className="text-xs text-slate-500">
-             Showing 1 to {filteredCustomers.length} of {customers.length} entries
+             Showing 1 to {filteredCustomers.length} of {activeCustomers.length} entries
            </div>
            <div className="flex gap-1">
              <Button variant="outline" size="sm" className="h-7 text-xs" disabled>Previous</Button>

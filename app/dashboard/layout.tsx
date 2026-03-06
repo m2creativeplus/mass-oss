@@ -17,14 +17,7 @@ function DashboardLayoutContent({
   const { organization, isLoading: orgLoading } = useOrganization()
   const pathname = usePathname()
 
-  // Debug logging to trace the issue
-  console.log("[DashboardLayout] State:", { 
-    authLoading, 
-    hasUser: !!user, 
-    userId: user?.id, 
-    orgLoading, 
-    hasOrg: !!organization 
-  })
+  // Auth and org state ready
 
   // Helper to extract active module from pathname
   // e.g., /dashboard/work-orders -> work-orders

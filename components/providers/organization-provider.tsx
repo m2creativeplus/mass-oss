@@ -67,12 +67,13 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   const isDemoUser = Boolean(user?.id?.startsWith("demo-")) || isLocalStorageDemo
   
-  // Query convex only if NOT a demo user (double check)
-  const shouldQueryConvex = Boolean(!authLoading && user && !isDemoUser)
+  // Query convex for both real and demo users to ensure full functionality
+  // Demo users will still be routed to "mass-hargeisa" orgId in components
+  const shouldQueryConvex = Boolean(!authLoading && user)
   
   const userOrgs = useQuery(
     api.functions.getUserOrgs, 
-    shouldQueryConvex ? { userId: user?.id as any } : "skip" // Cast user.id to any to satisfy Convex type
+    shouldQueryConvex ? { userId: user?.id as any } : "skip"
   )
 
   const organizations = useMemo(() => {

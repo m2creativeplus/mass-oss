@@ -66,6 +66,7 @@ const menuItems = [
   { id: "diagnostics", label: "AI Diagnostics", icon: Bot, roles: ["admin", "staff", "technician"] },
   { id: "estimates", label: "Estimates & Invoices", icon: FileText, roles: ["admin", "staff", "technician"] },
   { id: "reports", label: "Reports", icon: BarChart3, roles: ["admin", "staff"] },
+  { id: "cms", label: "CMS", icon: Database, roles: ["admin"] },
   { id: "ai-tools", label: "AI Assistant", icon: Bot, roles: ["admin", "staff", "technician"] },
   { id: "contact", label: "Contact", icon: Phone, roles: ["admin", "staff"] },
   { id: "settings", label: "Settings", icon: Settings, roles: ["admin"] },

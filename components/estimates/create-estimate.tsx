@@ -1,347 +1,362 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import * as React from "react"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { 
   Plus, 
   Minus,
   Calculator,
   Save,
-  Printer,
-  Send,
   ArrowLeft,
-  Trash2
+  Trash2,
+  User,
+  Car,
+  AlertCircle
 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 interface LineItem {
   id: string
-  type: "part" | "labor"
+  type: "part" | "labor" | "service" | "misc"
   description: string
   quantity: number
   unitPrice: number
-  total: number
+  totalPrice: number
+  isApproved: boolean
 }
 
-export function CreateEstimate() {
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    {
-      id: "1",
-      type: "part",
-      description: "Engine Oil Filter",
-      quantity: 1,
-      unitPrice: 15.00,
-      total: 15.00
-    }
-  ])
-  
-  const [laborRate, setLaborRate] = useState(75.00) // Per hour
-  const [taxRate, setTaxRate] = useState(10) // Percentage
-  const [discount, setDiscount] = useState(0)
+interface CreateEstimateProps {
+  onBack: () => void
+}
 
-  const addLineItem = (type: "part" | "labor") => {
+export function CreateEstimate({ onBack }: CreateEstimateProps) {
+  const orgId = "mass-hargeisa"
+  
+  // Convex Hooks
+  const customers = useQuery(api.functions.getCustomers, { orgId })
+  const allVehicles = useQuery(api.functions.getVehicles, { orgId })
+  const createEstimateMutation = useMutation(api.functions.createEstimate)
+
+  // State
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("")
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("")
+  const [workDescription, setWorkDescription] = useState("")
+  const [lineItems, setLineItems] = useState<LineItem[]>([
+    { id: "1", type: "labor", description: "Standard Diagnostics", quantity: 1, unitPrice: 45, totalPrice: 45, isApproved: true }
+  ])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Memoized Filtered Vehicles
+  const filteredVehicles = useMemo(() => {
+    if (!selectedCustomerId) return []
+    return allVehicles?.filter(v => v.customerId === selectedCustomerId) || []
+  }, [selectedCustomerId, allVehicles])
+
+  // Reset vehicle when customer changes
+  useEffect(() => {
+    setSelectedVehicleId("")
+  }, [selectedCustomerId])
+
+  const calculateTotals = () => {
+    const subtotal = lineItems.reduce((sum, item) => sum + item.totalPrice, 0)
+    const taxAmount = subtotal * 0.05 // 5% matching backend logic
+    const totalAmount = subtotal + taxAmount
+    return { subtotal, taxAmount, totalAmount }
+  }
+
+  const { subtotal, taxAmount, totalAmount } = calculateTotals()
+
+  const addLineItem = (type: LineItem["type"]) => {
     const newItem: LineItem = {
-      id: Date.now().toString(),
+      id: Math.random().toString(36).substr(2, 9),
       type,
       description: "",
       quantity: 1,
-      unitPrice: type === "labor" ? laborRate : 0,
-      total: 0
+      unitPrice: 0,
+      totalPrice: 0,
+      isApproved: true
     }
     setLineItems([...lineItems, newItem])
   }
 
   const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
-    setLineItems(items => items.map(item => {
+    setLineItems(prev => prev.map(item => {
       if (item.id === id) {
-        const updated = { ...item, [field]: value }
-        updated.total = updated.quantity * updated.unitPrice
-        return updated
+        const updatedItem = { ...item, [field]: value }
+        // Recalculate total for this item
+        if (field === "quantity" || field === "unitPrice") {
+          updatedItem.totalPrice = updatedItem.quantity * updatedItem.unitPrice
+        }
+        return updatedItem
       }
       return item
     }))
   }
 
   const removeLineItem = (id: string) => {
-    setLineItems(items => items.filter(item => item.id !== id))
+    if (lineItems.length === 1) return
+    setLineItems(lineItems.filter(item => item.id !== id))
   }
 
-  // Calculations
-  const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0)
-  const discountAmount = subtotal * (discount / 100)
-  const subtotalAfterDiscount = subtotal - discountAmount
-  const taxAmount = subtotalAfterDiscount * (taxRate / 100)
-  const grandTotal = subtotalAfterDiscount + taxAmount
+  const handleSave = async () => {
+    if (!selectedCustomerId || !selectedVehicleId) {
+      toast.error("Please select a customer and vehicle")
+      return
+    }
 
-  const partsTotal = lineItems.filter(i => i.type === "part").reduce((sum, item) => sum + item.total, 0)
-  const laborTotal = lineItems.filter(i => i.type === "labor").reduce((sum, item) => sum + item.total, 0)
+    if (lineItems.some(item => !item.description || item.unitPrice <= 0)) {
+      toast.error("Please complete all line items")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await createEstimateMutation({
+        orgId,
+        customerId: selectedCustomerId as any,
+        vehicleId: selectedVehicleId as any,
+        workDescription,
+        lineItems: lineItems.map(({ type, description, quantity, unitPrice, totalPrice, isApproved }) => ({
+          type, description, quantity, unitPrice, totalPrice, isApproved
+        }))
+      })
+      toast.success("Estimate created successfully")
+      onBack()
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to create estimate")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Create Estimate</h1>
-          <p className="text-muted-foreground mt-1">Generate detailed service estimates with automatic calculations</p>
-        </div>
-        <Button variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack} className="hover:bg-white/10">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Quotes
         </Button>
+        <div className="flex gap-3">
+          <Button 
+            disabled={isSubmitting}
+            onClick={handleSave}
+            className="bg-amber-500 hover:bg-amber-600 text-black font-bold shadow-lg shadow-amber-500/10 px-6"
+          >
+            {isSubmitting ? "Creating..." : (
+              <><Save className="mr-2 h-4 w-4" /> Save & Send Quote</>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Customer & Vehicle Info */}
-          <Card className="glass-card">
+        {/* Left Column: Customer & Vehicle */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-xl">
             <CardHeader>
-              <CardTitle>Customer & Vehicle Information</CardTitle>
+              <CardTitle className="text-lg flex items-center">
+                <User className="mr-2 h-4 w-4 text-amber-500" /> Customer Details
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
                 <Label>Select Customer</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose customer..." />
+                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                  <SelectTrigger className="bg-white/5 border-white/10">
+                    <SelectValue placeholder="Search customers..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Mohamed Ahmed - Toyota Land Cruiser (ABC-1234)</SelectItem>
-                    <SelectItem value="2">Sarah Hassan - Honda Civic (XYZ-5678)</SelectItem>
-                    <SelectItem value="3">Ahmed Ali - Ford F-150 (DEF-9012)</SelectItem>
+                  <SelectContent className="bg-zinc-900 border-white/10">
+                    {customers?.map(c => (
+                      <SelectItem key={c._id} value={c._id}>
+                        {c.firstName} {c.lastName}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div>
-                <Label>Estimate Date</Label>
-                <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
-              </div>
-              
-              <div>
-                <Label>Valid Until</Label>
-                <Input type="date" />
-              </div>
+
+              <AnimatePresence mode="wait">
+                {selectedCustomerId && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2 pt-2 border-t border-white/5 overflow-hidden"
+                  >
+                    <Label className="text-xs text-muted-foreground uppercase opacity-50">Select Vehicle</Label>
+                    <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                      <SelectTrigger className="bg-white/5 border-white/10">
+                        <SelectValue placeholder="Select vehicle..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-white/10">
+                        {filteredVehicles.length > 0 ? (
+                          filteredVehicles.map(v => (
+                            <SelectItem key={v._id} value={v._id}>
+                              {v.year} {v.make} {v.model} ({v.licensePlate})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>No vehicles found</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </CardContent>
           </Card>
 
-          {/* Line Items */}
-          <Card className="glass-card">
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-xl">
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Service Items</CardTitle>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => addLineItem("part")} variant="outline">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Part
-                  </Button>
-                  <Button size="sm" onClick={() => addLineItem("labor")} variant="outline">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Labor
-                  </Button>
-                </div>
+              <CardTitle className="text-lg">Notes</CardTitle>
+              <CardDescription>Internal or customer-facing notes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea 
+                placeholder="What is the problem? Diagnostics needed..."
+                value={workDescription}
+                onChange={(e) => setWorkDescription(e.target.value)}
+                className="min-h-[120px] bg-white/5 border-white/10 focus:border-amber-500/50"
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Line Items */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Line Items</CardTitle>
+                <CardDescription>Parts and labor operations</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => addLineItem("labor")} className="border-white/10 hover:bg-white/5">
+                  <Plus className="mr-1 h-3 w-3" /> Labor
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => addLineItem("part")} className="border-white/10 hover:bg-white/5">
+                  <Plus className="mr-1 h-3 w-3" /> Part
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {lineItems.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-3 p-4 rounded-lg bg-muted/50 items-start">
-                    <div className="col-span-1 flex items-center justify-center pt-2">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                        item.type === "part" 
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" 
-                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                      }`}>
-                        {item.type === "part" ? "P" : "L"}
+                <AnimatePresence initial={false}>
+                  {lineItems.map((item, index) => (
+                    <motion.div 
+                      key={item.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="group relative flex flex-col md:flex-row gap-4 p-4 rounded-xl border border-white/5 bg-white/5 hover:border-white/20 transition-all duration-300"
+                    >
+                      <div className="flex-1 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wider opacity-50">
+                            {item.type}
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => removeLineItem(item.id)}
+                            className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 md:hidden"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <Input 
+                          placeholder={item.type === "part" ? "Part Name / SKU" : "Labor Description"}
+                          value={item.description}
+                          onChange={(e) => updateLineItem(item.id, "description", e.target.value)}
+                          className="bg-transparent border-none p-0 focus-visible:ring-0 text-md font-medium placeholder:opacity-30"
+                        />
                       </div>
-                    </div>
-                    
-                    <div className="col-span-5">
-                      <Input
-                        placeholder={item.type === "part" ? "Part description..." : "Labor description..."}
-                        value={item.description}
-                        onChange={(e) => updateLineItem(item.id, "description", e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value))}
-                        min="1"
-                        step="0.1"
-                      />
-                    </div>
-                    
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        placeholder="Price"
-                        value={item.unitPrice}
-                        onChange={(e) => updateLineItem(item.id, "unitPrice", Number(e.target.value))}
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    
-                    <div className="col-span-1 flex items-center justify-end pt-2">
-                      <p className="font-bold">${item.total.toFixed(2)}</p>
-                    </div>
-                    
-                    <div className="col-span-1 flex items-center justify-center pt-2">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => removeLineItem(item.id)}
-                        className="h-8 w-8 p-0 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                      
+                      <div className="flex gap-4 items-end">
+                        <div className="w-20 space-y-1">
+                          <Label className="text-[10px] uppercase opacity-50">Qty</Label>
+                          <Input 
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
+                            className="bg-black/20 border-white/5 h-9"
+                          />
+                        </div>
+                        <div className="w-28 space-y-1">
+                          <Label className="text-[10px] uppercase opacity-50">Unit Price</Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-2 text-xs text-muted-foreground">$</span>
+                            <Input 
+                              type="number"
+                              value={item.unitPrice}
+                              onChange={(e) => updateLineItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
+                              className="bg-black/20 border-white/5 h-9 pl-6"
+                            />
+                          </div>
+                        </div>
+                        <div className="w-24 px-2 py-2 text-right">
+                          <p className="text-[10px] uppercase opacity-30">Total</p>
+                          <p className="font-bold text-amber-500">${item.totalPrice.toFixed(2)}</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => removeLineItem(item.id)}
+                          className="hidden md:flex h-9 w-9 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 rounded-lg group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
 
-              {lineItems.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Calculator className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p>No items added yet. Click "Add Part" or "Add Labor" to get started.</p>
+              {/* Summary */}
+              <div className="mt-8 pt-6 border-t border-white/10 space-y-3">
+                <div className="flex justify-between items-center text-muted-foreground text-sm">
+                  <span>Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Notes */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>Additional Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea 
-                placeholder="Add any special instructions, warranty information, or customer notes..."
-                rows={4}
-                className="resize-none"
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Summary Sidebar */}
-        <div className="space-y-6">
-          {/* Price Summary */}
-          <Card className="glass-card sticky top-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Price Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Parts & Labor Breakdown */}
-              <div className="space-y-2 pb-3 border-b">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Parts Total</span>
-                  <span className="font-medium">${partsTotal.toFixed(2)}</span>
+                <div className="flex justify-between items-center text-muted-foreground text-sm">
+                  <span>Tax (5.0%)</span>
+                  <span>${taxAmount.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Labor Total</span>
-                  <span className="font-medium">${laborTotal.toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Subtotal */}
-              <div className="flex justify-between">
-                <span className="font-medium">Subtotal</span>
-                <span className="font-bold text-lg">${subtotal.toFixed(2)}</span>
-              </div>
-
-              {/* Discount */}
-              <div className="space-y-2">
-                <Label>Discount (%)</Label>
-                <Input
-                  type="number"
-                  value={discount}
-                  onChange={(e) => setDiscount(Number(e.target.value))}
-                  min="0"
-                  max="100"
-                  step="1"
-                />
-                {discount > 0 && (
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    -${discountAmount.toFixed(2)} discount applied
-                  </p>
-                )}
-              </div>
-
-              {/* Tax */}
-              <div className="space-y-2">
-                <Label>Tax Rate (%)</Label>
-                <Input
-                  type="number"
-                  value={taxRate}
-                  onChange={(e) => setTaxRate(Number(e.target.value))}
-                  min="0"
-                  max="100"
-                  step="0.1"
-                />
-                <p className="text-xs text-muted-foreground">
-                  +${taxAmount.toFixed(2)} tax
-                </p>
-              </div>
-
-              {/* Grand Total */}
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">Grand Total</span>
-                  <span className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                    ${grandTotal.toFixed(2)}
+                <div className="flex justify-between items-center text-xl font-bold">
+                  <span className="flex items-center">
+                    <Calculator className="mr-2 h-5 w-5 text-amber-500" /> Total Cost
                   </span>
+                  <span className="text-amber-500">${totalAmount.toFixed(2)}</span>
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="space-y-2 pt-4">
-                <Button className="w-full bg-orange-500 hover:bg-orange-600">
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Estimate
-                </Button>
-                <Button className="w-full" variant="outline">
-                  <Send className="mr-2 h-4 w-4" />
-                  Send to Customer
-                </Button>
-                <Button className="w-full" variant="outline">
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print PDF
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
-          {/* Labor Rate Settings */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-sm">Labor Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Label className="text-xs">Hourly Rate ($)</Label>
-              <Input
-                type="number"
-                value={laborRate}
-                onChange={(e) => setLaborRate(Number(e.target.value))}
-                min="0"
-                step="0.01"
-                className="mt-2"
-              />
-            </CardContent>
-          </Card>
+          {(!selectedCustomerId || !selectedVehicleId) && (
+            <div className="flex items-center p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm">
+              <AlertCircle className="mr-2 h-4 w-4" />
+              You must select a customer and vehicle before saving this quote.
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
+
+export default CreateEstimate
