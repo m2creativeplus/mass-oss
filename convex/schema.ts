@@ -1077,5 +1077,30 @@ export default defineSchema({
   }).index("by_date", ["date"])
     .index("by_city", ["city"])
     .index("by_date_city", ["date", "city"]),
+
+  // ============ 35. PART REQUESTS (Real-Time Comms) ============
+  partRequests: defineTable({
+    workOrderId: v.id("workOrders"),
+    technicianId: v.id("users"),
+    partDescription: v.string(),
+    partNumber: v.optional(v.string()),
+    quantity: v.number(),
+    urgency: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("critical")),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("ordered"),
+      v.literal("ready"),
+      v.literal("installed"),
+      v.literal("cancelled")
+    ),
+    notes: v.optional(v.string()),
+    advisorId: v.optional(v.id("users")),
+    requestedAt: v.string(),
+    fulfilledAt: v.optional(v.string()),
+    orgId: v.string(),
+  }).index("by_workOrder", ["workOrderId"])
+    .index("by_technician", ["technicianId"])
+    .index("by_status", ["status"])
+    .index("by_org", ["orgId"]),
 });
 

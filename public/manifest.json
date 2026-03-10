@@ -1,6 +1,6 @@
 {
-  "name": "MASS Car Workshop",
-  "short_name": "MASS",
+  "name": "MASS OSS",
+  "short_name": "MASS OSS",
   "description": "Vehicle Workshop Management System for Somaliland",
   "start_url": "/",
   "display": "standalone",

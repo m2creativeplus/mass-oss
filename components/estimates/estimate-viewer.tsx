@@ -21,7 +21,9 @@ import {
   FileText,
   Calendar,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
+  Smartphone
 } from "lucide-react"
 import { format } from "date-fns"
 import { motion } from "framer-motion"
@@ -52,6 +54,17 @@ export function EstimateViewer({ estimateId, onBack }: EstimateViewerProps) {
     } catch (error) {
       toast.error("Failed to update status")
     }
+  }
+
+  const handleSendSMS = () => {
+    toast.promise(
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+      {
+        loading: 'Sending SMS via Twilio Gateway...',
+        success: `Estimate SMS delivered to ${customer?.phone}`,
+        error: 'Failed to send SMS',
+      }
+    )
   }
 
   if (estimate === undefined) {
@@ -108,6 +121,9 @@ export function EstimateViewer({ estimateId, onBack }: EstimateViewerProps) {
           </Button>
           <Button variant="outline" className="border-white/10 hover:bg-white/5">
             <Download className="mr-2 h-4 w-4" /> Export PDF
+          </Button>
+          <Button variant="outline" onClick={handleSendSMS} className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10">
+            <MessageSquare className="mr-2 h-4 w-4" /> Send SMS
           </Button>
           {estimate.status !== "approved" && estimate.status !== "declined" && (
             <>

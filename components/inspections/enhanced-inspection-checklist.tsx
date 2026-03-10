@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import { 
   CheckCircle2, 
   XCircle, 
@@ -26,7 +28,8 @@ import {
   ClipboardCheck,
   Zap,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Plus
 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
@@ -148,7 +151,7 @@ export function EnhancedInspectionChecklist({ id, onBack, onComplete }: Inspecti
     )
   }
 
-  const progress = inspection?.items.filter(p => p.status !== "not-applicable" && p.status !== "unchecked" && (p.status as any) !== "pending").length || 0
+  const progress = inspection?.items.filter(p => p.status !== "not-applicable").length || 0
   const total = inspection?.items.length || 0
   const progressPercent = total > 0 ? Math.round((progress / total) * 100) : 0
 
@@ -190,7 +193,7 @@ export function EnhancedInspectionChecklist({ id, onBack, onComplete }: Inspecti
           {inspectionCategories.map(category => {
             const CategoryIcon = category.icon
             const catPoints = inspection?.items.filter(p => p.category === category.id) || []
-            const catProgress = catPoints.filter(p => p.status !== "not-applicable" && p.status !== "unchecked").length
+            const catProgress = catPoints.filter(p => p.status !== "not-applicable").length
             
             return (
               <TabsTrigger 
@@ -247,7 +250,7 @@ export function EnhancedInspectionChecklist({ id, onBack, onComplete }: Inspecti
                                size="sm"
                                variant="outline"
                                className={cn(
-                                 "h-10 px-4 rounded-xl border-white/10",
+                                 "min-h-[48px] px-6 rounded-xl border-white/10 font-bold",
                                  point.status === "ok" && "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
                                )}
                                onClick={() => handleUpdateStatus(point.name, "ok")}
@@ -259,7 +262,7 @@ export function EnhancedInspectionChecklist({ id, onBack, onComplete }: Inspecti
                                size="sm"
                                variant="outline"
                                className={cn(
-                                 "h-10 px-4 rounded-xl border-white/10",
+                                 "min-h-[48px] px-6 rounded-xl border-white/10 font-bold",
                                  point.status === "attention" && "bg-amber-500 text-white border-amber-500 hover:bg-amber-600"
                                )}
                                onClick={() => handleUpdateStatus(point.name, "attention")}
@@ -271,7 +274,7 @@ export function EnhancedInspectionChecklist({ id, onBack, onComplete }: Inspecti
                                size="sm"
                                variant="outline"
                                className={cn(
-                                 "h-10 px-4 rounded-xl border-white/10",
+                                 "min-h-[48px] px-6 rounded-xl border-white/10 font-bold",
                                  point.status === "immediate-attention" && "bg-red-500 text-white border-red-500 hover:bg-red-600"
                                )}
                                onClick={() => handleUpdateStatus(point.name, "immediate-attention")}
@@ -283,11 +286,11 @@ export function EnhancedInspectionChecklist({ id, onBack, onComplete }: Inspecti
                           <Separator orientation="vertical" className="h-8 bg-white/10 hidden md:block" />
 
                           <div className="flex gap-1.5">
-                             <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl hover:bg-amber-500/10 hover:text-amber-500">
-                               <Camera className="h-4 w-4" />
+                             <Button size="icon" variant="ghost" className="min-h-[48px] min-w-[48px] rounded-xl hover:bg-amber-500/10 hover:text-amber-500">
+                               <Camera className="h-5 w-5" />
                              </Button>
-                             <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl hover:bg-amber-500/10 hover:text-amber-500">
-                               <Plus className="h-4 w-4" />
+                             <Button size="icon" variant="ghost" className="min-h-[48px] min-w-[48px] rounded-xl hover:bg-red-500/10 hover:text-red-500" onClick={() => toast("Part request interface opened.")}>
+                               <Wrench className="h-5 w-5" />
                              </Button>
                           </div>
                         </div>
@@ -338,15 +341,15 @@ export function EnhancedInspectionChecklist({ id, onBack, onComplete }: Inspecti
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 justify-end pt-10 border-t border-white/5">
-        <Button variant="ghost" onClick={onBack} className="hover:bg-white/5 h-12 px-8">
+        <Button variant="ghost" onClick={onBack} className="hover:bg-white/5 min-h-[48px] px-8 font-bold">
            Save as Draft
         </Button>
         <Button 
           onClick={handleComplete}
-          className="bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest h-12 px-10 shadow-xl shadow-amber-500/20"
+          className="bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest min-h-[48px] px-10 shadow-xl shadow-amber-500/20"
         >
           Complete & Generate Report
-          <ArrowRight className="h-4 w-4 ml-2" />
+          <ArrowRight className="h-5 w-5 ml-2" />
         </Button>
       </div>
     </div>

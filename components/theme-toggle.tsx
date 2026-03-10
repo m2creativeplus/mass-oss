@@ -25,14 +25,17 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-slate-900 border-white/10 text-slate-300">
-        <DropdownMenuItem onClick={() => setTheme("light")} className="focus:bg-white/10 focus:text-white cursor-pointer">
-          Light Theme
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")} className="focus:bg-white/10 focus:text-white cursor-pointer">
-          MASS OSS (Dark)
+          MASS OSS Default (Dark)
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")} className="focus:bg-white/10 focus:text-white cursor-pointer">
-          System
+        <DropdownMenuItem onClick={() => setTheme("theme-institutional")} className="focus:bg-white/10 focus:text-white cursor-pointer flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-600"></div> Sovereign Institutional
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("theme-nexus")} className="focus:bg-white/10 focus:text-white cursor-pointer flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-cyan-500"></div> Tech Nexus (Diagnostic)
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("light")} className="focus:bg-white/10 focus:text-white cursor-pointer mt-2 pt-2 border-t border-white/10">
+          Light Theme
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

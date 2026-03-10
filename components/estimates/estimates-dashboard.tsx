@@ -19,7 +19,7 @@ export interface EstimatesDashboardProps {
 }
 
 export function EstimatesDashboard({ onCreate, onOpen }: EstimatesDashboardProps) {
-  // Use a fixed orgId for the demo (matching MASS Car Workshop org created in seed)
+  // Use a fixed orgId for the demo (matching MASS OSS org created in seed)
   const orgId = "mass-hargeisa" // In a real app this would come from auth context
 
   const estimates = useQuery(api.functions.getEstimates, { orgId })

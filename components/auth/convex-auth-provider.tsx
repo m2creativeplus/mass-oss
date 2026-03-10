@@ -173,6 +173,10 @@ export function ConvexAuthProvider({ children }: { children: ReactNode }) {
         console.log("[Auth] Demo login successful:", email)
         setUser(demoUser)
         localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser))
+        
+        // Ensure middleware can read auth context via cookie
+        document.cookie = `mass_workshop_auth=true; path=/; max-age=86400; SameSite=Lax`
+        
         return { success: true }
       }
 
@@ -195,6 +199,7 @@ export function ConvexAuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setAuthError(null)
       localStorage.removeItem(STORAGE_KEY)
+      document.cookie = "mass_workshop_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
       console.log("[Auth] Logged out successfully")
     } catch (error) {
       console.error("[Auth] Logout error:", error)

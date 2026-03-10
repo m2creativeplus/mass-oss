@@ -37,8 +37,10 @@ export default function LandingPage() {
             <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden sm:block">
               Login
             </Link>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white font-medium shadow-[0_0_15px_rgba(249,115,22,0.3)] border-0">
-              Book Appointment
+            <Button asChild className="bg-orange-500 hover:bg-orange-600 text-white font-medium shadow-[0_0_15px_rgba(249,115,22,0.3)] border-0">
+              <Link href="/login">
+                Book Appointment
+              </Link>
             </Button>
           </div>
         </div>
@@ -63,11 +65,15 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <Button size="lg" className="h-14 px-8 text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border-0 rounded-md">
-              Get an Appointment &rarr;
+            <Button asChild size="lg" className="h-14 px-8 text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)] border-0 rounded-md">
+              <Link href="/login">
+                Get an Appointment &rarr;
+              </Link>
             </Button>
-            <Button size="lg" variant="outline" className="h-14 px-8 text-base border-white/10 text-white hover:bg-white/5 rounded-md bg-transparent">
-              Our Services
+            <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base border-white/10 text-white hover:bg-white/5 rounded-md bg-transparent">
+              <Link href="#services">
+                Our Services
+              </Link>
             </Button>
           </div>
         </div>

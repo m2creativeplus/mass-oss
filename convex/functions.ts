@@ -1270,7 +1270,6 @@ export const addPayment = mutation({
     });
 
     // Update Invoice status and balances
-    const invoice = await ctx.db.get(args.invoiceId);
     if (invoice) {
       const newPaidAmount = (invoice.paidAmount || 0) + args.amount;
       const newBalanceDue = invoice.totalAmount - newPaidAmount;

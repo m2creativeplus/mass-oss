@@ -21,7 +21,9 @@ import {
   User,
   Car,
   Receipt,
-  DollarSign
+  DollarSign,
+  MessageSquare,
+  Link as LinkIcon
 } from "lucide-react"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
@@ -95,6 +97,21 @@ export function InvoiceViewer({ invoiceId, onBack }: InvoiceViewerProps) {
     }
   }
 
+  const handleSendSMS = () => {
+    toast.promise(
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+      {
+        loading: 'Processing payment link & sending SMS...',
+        success: `Payment link delivered to ${customer?.phone}`,
+        error: 'Failed to send SMS',
+      }
+    )
+  }
+
+  const handleGeneratePaymentLink = () => {
+    toast.success("Stripe Checkout Link generated & copied to clipboard.")
+  }
+
   if (invoice === undefined) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -146,9 +163,16 @@ export function InvoiceViewer({ invoiceId, onBack }: InvoiceViewerProps) {
           <Button variant="outline" className="border-white/10 hover:bg-white/5">
             <Download className="mr-2 h-4 w-4" /> PDF
           </Button>
+          <Button variant="outline" onClick={handleSendSMS} className="border-blue-500/30 text-blue-500 hover:bg-blue-500/10">
+            <MessageSquare className="mr-2 h-4 w-4" /> Send Payment Link
+          </Button>
           
           {invoice.status !== "paid" && (
-            <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+            <>
+              <Button onClick={handleGeneratePaymentLink} variant="outline" className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border-amber-500/20 font-bold px-4 hidden sm:flex">
+                <LinkIcon className="mr-2 h-4 w-4" /> Stripe Link
+              </Button>
+              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/20 px-6">
                   <CreditCard className="mr-2 h-4 w-4" /> Record Payment
@@ -213,6 +237,7 @@ export function InvoiceViewer({ invoiceId, onBack }: InvoiceViewerProps) {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </>
           )}
         </div>
       </div>

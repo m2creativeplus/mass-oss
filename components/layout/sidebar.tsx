@@ -104,8 +104,8 @@ export function Sidebar({ activeModule, onModuleChange, userRole, className }: S
             <Car className="h-6 w-6 text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg text-white tracking-tight">MASS</span>
-            <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Automotive</span>
+            <span className="font-bold text-lg text-white tracking-tight">MASS OSS</span>
+            <span className="text-[10px] uppercase font-semibold text-amber-500 tracking-wider">Auto Diagnostics</span>
           </div>
         </div>
         
@@ -176,10 +176,7 @@ export function Sidebar({ activeModule, onModuleChange, userRole, className }: S
 
       {/* User Profile Footer */}
       <div className="p-4 mt-auto space-y-2">
-        {!isCollapsed && (
-             <ThemeToggle />
-        )}
-             <ThemeToggle />
+        <ThemeToggle />
 
         <div className={cn(
           "rounded-xl bg-white/5 border border-white/10 p-3 transition-all duration-300 hover:bg-white/10 hover:border-white/20 cursor-pointer overflow-hidden",

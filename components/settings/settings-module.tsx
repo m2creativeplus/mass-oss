@@ -20,7 +20,7 @@ export function SettingsModule() {
   const [activeTab, setActiveTab] = useState("system")
   
   // Form states
-  const [workshopName, setWorkshopName] = useState("MASS Car Workshop")
+  const [workshopName, setWorkshopName] = useState("MASS OSS")
   const [currency, setCurrency] = useState("USD")
   const [systemEmail, setSystemEmail] = useState("admin@massworkshop.com")
   const [address, setAddress] = useState("Hargeisa, Somaliland")
@@ -229,7 +229,7 @@ export function SettingsModule() {
                   <textarea 
                     className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     placeholder="Copyright text..."
-                    defaultValue="© 2026 MASS Car Workshop. All rights reserved."
+                    defaultValue="© 2026 MASS OSS. All rights reserved."
                   />
                 </div>
                 

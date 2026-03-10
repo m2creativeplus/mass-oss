@@ -128,6 +128,61 @@ body {
     --glass-border: rgba(255, 255, 255, 0.1);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
+  
+  /* Sovereign Institutional Theme (Toggle) */
+  .theme-institutional {
+    --background: 139 50% 98%;
+    --foreground: 161 85% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 161 85% 10%;
+    --primary: 153 55% 23%;       /* Deep Green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 139 20% 90%;
+    --secondary-foreground: 161 85% 15%;
+    --accent: 44 63% 53%;         /* Gold */
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 65% 51%;     /* Crimson */
+    --warning: 44 63% 53%;
+    --success: 153 55% 23%;
+    --sidebar-background: 161 85% 10%; /* Deep Forest */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 44 63% 53%;
+  }
+
+  .theme-institutional.dark {
+    --background: 161 85% 10%;
+    --foreground: 0 0% 100%;
+    --card: 161 85% 15%;
+    --card-foreground: 0 0% 100%;
+    --primary: 153 55% 23%;
+    --accent: 44 63% 53%;
+    --sidebar-background: 161 85% 7%;
+  }
+  
+  /* Tech Nexus Theme (Diagnostic Mode Toggle) */
+  .theme-nexus {
+    --background: 222 47% 4%;
+    --foreground: 190 100% 90%;
+    --card: 222 47% 8%;
+    --card-foreground: 190 100% 90%;
+    --primary: 188 86% 53%;       /* Electric Cyan */
+    --primary-foreground: 0 0% 10%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 190 100% 90%;
+    --accent: 258 90% 66%;        /* Violet */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 340 82% 52%;   /* Neon Pink */
+    --warning: 38 92% 50%;
+    --success: 142 71% 45%;
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 188 86% 53%;
+    --sidebar-primary: 188 86% 53%;
+    
+    /* Strong Glassmorphism for diagnostic view */
+    --glass-bg: rgba(2, 6, 23, 0.7);
+    --glass-border: rgba(6, 182, 212, 0.2);
+    --glass-shadow: 0 8px 32px rgba(6, 182, 212, 0.15);
+  }
 }
 
 @layer base {
@@ -285,9 +340,9 @@ body {
     background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
   }
   
-  /* Quick Action Button */
+  /* Quick Action Button - Tactical 48px standard for mechanic hands */
   .quick-action {
-    @apply flex items-center gap-2 px-4 py-2 rounded-lg 
+    @apply flex items-center gap-2 px-6 min-h-[48px] rounded-lg 
            bg-orange-500 text-white font-medium
            hover:bg-orange-600 active:scale-95
            transition-all duration-200 shadow-lg shadow-orange-500/20;

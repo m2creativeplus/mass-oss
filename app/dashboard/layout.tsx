@@ -95,8 +95,8 @@ function DashboardLayoutContent({
             <h1 className="text-lg font-bold text-foreground tracking-tight">
               {getModuleTitle(activeModule)}
             </h1>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 font-medium">
-               {organization.name}
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 font-medium">
+               MASS OSS
             </span>
           </div>
           <div className="flex items-center gap-3">

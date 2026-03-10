@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { useConvexAuth } from "@/components/auth/convex-auth-provider"
 
 interface Organization {
-  _id: string
+  _id: string | any
   name: string
   slug: string
   role: string
@@ -24,7 +24,7 @@ const OrganizationContext = createContext<OrganizationContextType | undefined>(u
 // Demo organization for demo users - instant access, no backend query needed
 const DEMO_ORGANIZATION: Organization = {
   _id: "demo-org-001",
-  name: "MASS Car Workshop",
+  name: "MASS OSS",
   slug: "mass-hargeisa",
   role: "admin"
 }
@@ -129,9 +129,9 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   return (
     <OrganizationContext.Provider value={{
-      organization: activeOrg,
+      organization: activeOrg as Organization | null,
       setOrganization,
-      organizations,
+      organizations: organizations as Organization[],
       isLoading
     }}>
       {children}

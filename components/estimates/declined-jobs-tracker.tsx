@@ -100,7 +100,7 @@ export function DeclinedJobsTracker() {
     } else {
       // Generate SMS message
       const message = encodeURIComponent(
-        `Hi ${job.customerName.split(" ")[0]}, this is MASS Car Workshop. ` +
+        `Hi ${job.customerName.split(" ")[0]}, this is MASS OSS. ` +
         `We noticed you declined some recommended repairs for your ${job.vehicleMake} ${job.vehicleModel}. ` +
         `We'd like to offer you 10% off if you schedule within this week. Would you like to book an appointment?`
       )
