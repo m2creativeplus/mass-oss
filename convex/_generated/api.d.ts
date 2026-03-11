@@ -8,11 +8,14 @@
  * @module
  */
 
+import type * as aiContent from "../aiContent.js";
 import type * as cms from "../cms.js";
 import type * as functions from "../functions.js";
 import type * as helpers from "../helpers.js";
 import type * as ingestion from "../ingestion.js";
+import type * as partRequests from "../partRequests.js";
 import type * as seed from "../seed.js";
+import type * as seedCms from "../seedCms.js";
 import type * as seedDemo from "../seedDemo.js";
 import type * as seeding from "../seeding.js";
 
@@ -23,11 +26,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiContent: typeof aiContent;
   cms: typeof cms;
   functions: typeof functions;
   helpers: typeof helpers;
   ingestion: typeof ingestion;
+  partRequests: typeof partRequests;
   seed: typeof seed;
+  seedCms: typeof seedCms;
   seedDemo: typeof seedDemo;
   seeding: typeof seeding;
 }>;

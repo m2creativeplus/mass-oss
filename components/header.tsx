@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { ChevronDown, Menu, X } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 
 export function Header() {
@@ -12,50 +13,47 @@ export function Header() {
   }
 
   return (
-    <header className="w-full bg-white border-b border-gray-200 relative">
+    <header className="w-full bg-slate-950/50 backdrop-blur-xl border-b border-white/5 fixed top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           <div className="flex items-center">
-            <div className="text-2xl font-bold">
-              <span className="text-gray-900">Auto</span>
-              <span className="text-teal-500">Leap</span>
-              <span className="text-teal-500">°</span>
+            <div className="text-2xl font-black tracking-tighter">
+              <span className="text-white">MASS</span>
+              <span className="text-orange-500">OSS</span>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <div className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 cursor-pointer">
-              <span>Features</span>
-              <ChevronDown className="w-4 h-4" />
-            </div>
-            <div className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 cursor-pointer">
-              <span>Shop Types</span>
-              <ChevronDown className="w-4 h-4" />
-            </div>
-            <div className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 cursor-pointer">
-              <span>Partners</span>
-              <ChevronDown className="w-4 h-4" />
-            </div>
-            <span className="text-gray-700 hover:text-gray-900 cursor-pointer">Pricing</span>
-            <div className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 cursor-pointer">
-              <span>Resources</span>
-              <ChevronDown className="w-4 h-4" />
-            </div>
+          <nav className="hidden md:flex items-center space-x-10">
+            <Link href="#features" className="text-sm font-bold text-slate-400 hover:text-orange-500 transition-colors cursor-pointer">
+              Features
+            </Link>
+            <Link href="#solutions" className="text-sm font-bold text-slate-400 hover:text-orange-500 transition-colors cursor-pointer">
+              Solutions
+            </Link>
+            <Link href="/pricing" className="text-sm font-bold text-slate-400 hover:text-orange-500 transition-colors cursor-pointer">
+              Pricing
+            </Link>
+            <Link href="/blog" className="text-sm font-bold text-slate-400 hover:text-orange-500 transition-colors cursor-pointer">
+              Network
+            </Link>
           </nav>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center space-x-4">
-            <span className="text-gray-700 text-sm">(855) 560-0088</span>
-            <span className="text-gray-700 hover:text-gray-900 cursor-pointer">Sign In</span>
-            <Button className="bg-teal-400 hover:bg-teal-500 text-white px-6">Get a Demo</Button>
+          <div className="hidden md:flex items-center space-x-6">
+            <Link href="/login" className="text-sm font-bold text-slate-400 hover:text-white transition-colors cursor-pointer">
+              Sign In
+            </Link>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 h-11 rounded-xl shadow-lg shadow-orange-500/20">
+              Get a Demo
+            </Button>
           </div>
 
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button
               onClick={toggleMobileMenu}
-              className="text-gray-700 hover:text-gray-900 focus:outline-none focus:text-gray-900"
+              className="text-slate-400 hover:text-white focus:outline-none"
               aria-label="Toggle mobile menu"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -66,46 +64,20 @@ export function Header() {
 
       {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
-          <div className="px-4 py-6 space-y-6">
-            {/* Mobile Navigation Links */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-700 font-medium">Features</span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-700 font-medium">Shop Types</span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-700 font-medium">Partners</span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </div>
-              <div className="py-2 border-b border-gray-100">
-                <span className="text-gray-700 font-medium">Pricing</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-700 font-medium">Resources</span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </div>
+        <div className="md:hidden absolute top-20 left-0 right-0 bg-slate-950 border-b border-white/5 shadow-2xl z-50">
+          <div className="px-6 py-8 space-y-8">
+            <div className="flex flex-col space-y-6">
+                <Link href="#features" onClick={toggleMobileMenu} className="text-xl font-bold text-white">Features</Link>
+                <Link href="#solutions" onClick={toggleMobileMenu} className="text-xl font-bold text-white">Solutions</Link>
+                <Link href="/pricing" onClick={toggleMobileMenu} className="text-xl font-bold text-white">Pricing</Link>
+                <Link href="/blog" onClick={toggleMobileMenu} className="text-xl font-bold text-white">Network</Link>
             </div>
 
-            {/* Mobile Contact Info */}
-            <div className="space-y-4 pt-4 border-t border-gray-200">
-              <div className="text-center">
-                <a href="tel:8555600088" className="text-teal-600 font-semibold text-lg">
-                  (855) 560-0088
-                </a>
-              </div>
-
-              <div className="text-center">
-                <button className="text-gray-700 hover:text-gray-900 font-medium">Sign In</button>
-              </div>
-
-              <div className="pt-2">
-                <Button className="w-full bg-teal-400 hover:bg-teal-500 text-white py-3 text-lg">Get a Demo</Button>
-              </div>
+            <div className="pt-8 border-t border-white/5 space-y-6">
+                <Link href="/login" onClick={toggleMobileMenu} className="block text-center text-slate-400 font-bold">Sign In</Link>
+                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 text-lg font-bold rounded-xl h-14">
+                    Get a Demo
+                </Button>
             </div>
           </div>
         </div>

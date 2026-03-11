@@ -1102,5 +1102,62 @@ export default defineSchema({
     .index("by_technician", ["technicianId"])
     .index("by_status", ["status"])
     .index("by_org", ["orgId"]),
+
+  // ============ 36. BLOG POSTS (CMS) ============
+  blogPosts: defineTable({
+    title: v.string(),
+    slug: v.string(),
+    content: v.string(),
+    excerpt: v.optional(v.string()),
+    featuredImage: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("published"), v.literal("archived")),
+    tags: v.array(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    publishedAt: v.optional(v.string()),
+    viewCount: v.number(),
+    orgId: v.string(),
+    authorId: v.optional(v.id("users")),
+  }).index("by_org", ["orgId"])
+    .index("by_slug", ["slug"])
+    .index("by_status", ["status"]),
+
+  // ============ 37. FAQS (CMS) ============
+  faqs: defineTable({
+    question: v.string(),
+    answer: v.string(),
+    category: v.optional(v.string()),
+    order: v.number(),
+    isActive: v.boolean(),
+    orgId: v.string(),
+  }).index("by_org", ["orgId"])
+    .index("by_category", ["category"]),
+
+  // ============ 38. DYNAMIC PAGES (CMS) ============
+  dynamicPages: defineTable({
+    title: v.string(),
+    slug: v.string(),
+    content: v.string(),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    template: v.optional(v.string()),
+    isPublished: v.boolean(),
+    publishedAt: v.optional(v.string()),
+    orgId: v.string(),
+  }).index("by_org", ["orgId"])
+    .index("by_slug", ["slug"]),
+
+  // ============ 39. NOTIFICATION TEMPLATES (Communications) ============
+  notificationTemplates: defineTable({
+    name: v.string(),
+    type: v.union(v.literal("email"), v.literal("sms"), v.literal("whatsapp")),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    variables: v.array(v.string()),
+    triggerEvent: v.optional(v.string()),
+    isActive: v.boolean(),
+    orgId: v.string(),
+  }).index("by_org", ["orgId"])
+    .index("by_type", ["type"]),
 });
 

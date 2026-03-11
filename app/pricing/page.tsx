@@ -1,149 +1,183 @@
+import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
-import { Check, X } from "lucide-react"
+import { Check, ShieldCheck, Zap, Globe, Cpu } from "lucide-react"
 import Link from "next/link"
 
 const plans = [
   {
-    name: "Basic",
+    name: "Starter",
     price: "Free",
-    desc: "For small garages just starting out",
+    desc: "Essential digital tools for independent workshops.",
     features: [
-      "50 User Limit",
-      "50 Client Limit",
-      "50 Employee Limit",
-      "Logged History",
-      "Inventory Management",
-      "Basic Reporting"
+      "50 Vehicle Passport Limit",
+      "50 Client Profiles",
+      "Basic Job Cards",
+      "Digital Service History",
+      "Inventory Tracking (Basic)",
+      "SAIP Data View",
     ],
-    missing: ["Coupons/Discounts", "API Access", "Priority Support"],
     cta: "Start Free",
-    popular: false
+    popular: false,
+    icon: Zap
   },
   {
-    name: "Premium",
+    name: "Growth",
     price: "$29",
     period: "/mo",
-    desc: "Perfect for growing workshops",
+    desc: "Advanced operating system for growing service centers.",
     features: [
-      "20 User Limit (Higher Tier)",
+      "Unlimited Passports",
       "Unlimited Clients",
-      "Unlimited Employees",
-      "Logged History",
-      "Coupons/Discounts",
-      "DVI Inspections",
-      "Online Booking"
+      "Technician Management",
+      "DVI Photo Inspections",
+      "Online Booking Portal",
+      "SMS Automation",
+      "SAIP Network Node",
     ],
-    missing: ["API Access", "White Labeling"],
-    cta: "Get Premium",
-    popular: true
+    cta: "Select Growth",
+    popular: true,
+    icon: ShieldCheck
   },
   {
-    name: "Standard",
-    price: "$49",
+    name: "Pro",
+    price: "$59",
     period: "/mo",
-    desc: "For established service centers",
+    desc: "Full institutional intelligence for established garages.",
     features: [
-      "30 User Limit",
-      "Unlimited Clients",
-      "Unlimited Employees",
-      "All Premium Features",
-      "Priority Support",
-      "Multi-location Support"
+      "Multi-module Dashboard",
+      "Advanced Inventory AI",
+      "Employee Productivity Tech",
+      "Financial Reporting",
+      "Priority SAIP Intelligence",
+      "Ecosystem Integration",
     ],
-    missing: [],
-    cta: "Get Standard",
-    popular: false
+    cta: "Select Pro",
+    popular: false,
+    icon: Cpu
   },
   {
-    name: "Advance",
-    price: "$99",
+    name: "Enterprise",
+    price: "$129",
     period: "/mo",
-    desc: "For large chains and franchises",
+    desc: "For dealerships, fleets, and automotive networks.",
     features: [
-      "Unlimited Users",
-      "Unlimited Clients",
-      "Unlimited Employees",
-      "All Features Included",
-      "Dedicated Account Manager",
+      "Unlimited Everything",
       "API Access",
-      "Custom Comp Domain"
+      "Custom Deployment",
+      "Dedicated Advisor",
+      "White-label Reports",
+      "Institutional Data Flow",
     ],
-    missing: [],
     cta: "Contact Sales",
-    popular: false
+    popular: false,
+    icon: Globe
   }
 ]
 
 export default function PricingPage() {
   return (
-    <div className="flex flex-col">
-      <section className="py-20 bg-slate-950 border-b border-white/5">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">Simple, Transparent <span className="text-orange-500">Pricing</span></h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-            Choose the plan that fits your workshop size. No hidden fees.
-          </p>
-        </div>
-      </section>
+    <div className="min-h-screen bg-slate-950 text-white selection:bg-orange-500/30 font-sans flex flex-col relative overflow-hidden">
+      <Header />
+      
+      <main className="flex-1 pt-32 pb-20">
+        <section className="py-20 relative overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-orange-600/10 blur-[120px] rounded-full -z-10" />
+            <div className="container mx-auto px-6 text-center">
+                <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter">Institutional <br /> <span className="text-orange-500">Pricing</span></h1>
+                <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                    Scale your automotive business with the industry's most powerful operating system. No hidden costs. Zero friction.
+                </p>
+            </div>
+        </section>
 
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {plans.map((plan, i) => (
-              <div key={i} className={`relative rounded-2xl p-8 border flex flex-col ${plan.popular ? 'bg-white/10 border-orange-500 shadow-2xl shadow-orange-500/10' : 'bg-white/5 border-white/10'}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
-                    Most Popular
-                  </div>
-                )}
-                
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                  <p className="text-sm text-slate-400 min-h-[40px]">{plan.desc}</p>
+        <section className="py-12">
+            <div className="container mx-auto px-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {plans.map((plan, i) => (
+                        <div 
+                            key={i} 
+                            className={`group relative rounded-[2.5rem] p-10 border transition-all duration-500 flex flex-col ${
+                                plan.popular 
+                                ? 'bg-orange-500 border-orange-500 shadow-2xl shadow-orange-500/20 scale-105 z-10' 
+                                : 'bg-white/[0.02] border-white/5 hover:border-orange-500/30'
+                            }`}
+                        >
+                            {plan.popular && (
+                                <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white text-orange-500 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-xl">
+                                    Recommended
+                                </div>
+                            )}
+                            
+                            <div className="mb-10">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 border transition-colors ${
+                                    plan.popular ? 'bg-white text-orange-500 border-white' : 'bg-slate-900 text-orange-500 border-white/10'
+                                }`}>
+                                    <plan.icon className="w-7 h-7" />
+                                </div>
+                                <h3 className={`text-2xl font-black mb-3 ${plan.popular ? 'text-white' : 'text-white'}`}>{plan.name}</h3>
+                                <p className={`text-sm leading-relaxed ${plan.popular ? 'text-orange-50' : 'text-slate-500'}`}>{plan.desc}</p>
+                            </div>
+
+                            <div className="mb-10">
+                                <div className="flex items-baseline gap-1">
+                                    <span className={`text-5xl font-black tracking-tighter ${plan.popular ? 'text-white' : 'text-white'}`}>{plan.price}</span>
+                                    {plan.period && <span className={`text-sm font-bold ${plan.popular ? 'text-orange-100' : 'text-slate-500'}`}>{plan.period}</span>}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 mb-12 flex-1">
+                                {plan.features.map((feat, j) => (
+                                    <div key={j} className="flex items-start gap-3">
+                                        <Check className={`h-4 w-4 shrink-0 mt-1 ${plan.popular ? 'text-white' : 'text-orange-500'}`} />
+                                        <span className={`text-sm font-medium ${plan.popular ? 'text-white' : 'text-slate-300'}`}>{feat}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <Button asChild className={`h-16 text-lg font-black rounded-2xl transition-all w-full ${
+                                plan.popular 
+                                ? 'bg-white text-orange-500 hover:bg-orange-50 shadow-xl' 
+                                : 'bg-white/5 text-white hover:bg-orange-500 border border-white/10'
+                            }`}>
+                                <Link href="/register">
+                                    {plan.cta}
+                                </Link>
+                            </Button>
+                        </div>
+                    ))}
                 </div>
+            </div>
+        </section>
 
-                <div className="mb-8">
-                  <span className="text-4xl font-bold text-white">{plan.price}</span>
-                  {plan.period && <span className="text-slate-400">{plan.period}</span>}
-                </div>
+        <section className="py-24 mt-12 bg-black border-y border-white/5">
+            <div className="container mx-auto px-6 max-w-4xl text-center">
+                <h2 className="text-3xl md:text-4xl font-black text-white mb-6">Custom Enterprise Solutions</h2>
+                <p className="text-slate-400 mb-10 text-lg leading-relaxed">
+                    Managing a national fleet or a regional network? We offer custom deployment, institutional data APIs, and dedicated priority support.
+                </p>
+                <Button size="lg" variant="outline" asChild className="h-16 px-12 text-lg border-orange-500/20 text-white hover:bg-orange-500/5 bg-transparent rounded-2xl">
+                    <Link href="/contact">
+                        Contact Enterprise Team
+                    </Link>
+                </Button>
+            </div>
+        </section>
+      </main>
 
-                <div className="space-y-4 mb-8 flex-1">
-                  {plan.features.map((feat, j) => (
-                    <div key={j} className="flex items-start gap-3 text-sm text-slate-300">
-                      <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                  {plan.missing.map((feat, j) => (
-                    <div key={j} className="flex items-start gap-3 text-sm text-slate-600">
-                      <X className="h-4 w-4 text-slate-600 flex-shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <Link href="/register" className="w-full">
-                  <Button className={`w-full ${plan.popular ? 'bg-orange-500 hover:bg-orange-600' : 'bg-white/10 hover:bg-white/20'}`}>
-                    {plan.cta}
-                  </Button>
-                </Link>
-              </div>
-            ))}
-          </div>
+      <footer className="py-12 bg-black border-t border-white/5">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="text-2xl font-black tracking-tighter">
+              <span className="text-white">MASS</span>
+              <span className="text-orange-500">OSS</span>
+            </div>
+            <div className="flex gap-8 text-sm text-slate-500 font-bold uppercase tracking-widest">
+                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+                <a href="#" className="hover:text-white transition-colors">Contact Support</a>
+            </div>
+            <p className="text-slate-600 text-xs font-medium">© 2026 M2 Creative & Consulting. All rights reserved.</p>
         </div>
-      </section>
-
-      <section className="py-20 border-t border-white/10 bg-white/5">
-        <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">Enterprise Needs?</h2>
-            <p className="text-slate-400 mb-8">Need custom integrations, SLA support, or on-premise deployment?</p>
-            <Link href="/contact">
-              <Button variant="outline" size="lg" className="border-white/10 text-white hover:bg-white/5">
-                Contact Our Sales Team
-              </Button>
-            </Link>
-        </div>
-      </section>
+      </footer>
     </div>
   )
 }
