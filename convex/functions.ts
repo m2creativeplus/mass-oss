@@ -85,11 +85,13 @@ export const getUserOrgs = query({
     const orgs = await Promise.all(
       roles.map(async (role) => {
         const org = await ctx.db.get(role.orgId);
+        if (!org) return null;
         return { ...org, role: role.role };
       })
     );
     
-    return orgs.filter(o => o.isActive); // Only active orgs
+    // Filter out nulls (deleted orgs) and inactive orgs
+    return orgs.filter((o): o is NonNullable<typeof o> => o !== null && o.isActive);
   },
 });
 
@@ -329,9 +331,37 @@ export const updateInventoryQuantity = mutation({
   args: {
     id: v.id("inventory"),
     quantity: v.number(),
+    orgId: v.string(), // Added orgId
+    reason: v.optional(v.union( // Added reason for adjustment
+      v.literal("damage"),
+      v.literal("theft"),
+      v.literal("audit_correction"),
+      v.literal("return_restock"),
+      v.literal("sale"), // Added sale as a reason
+      v.literal("purchase_receipt"), // Added purchase_receipt as a reason
+      v.literal("other")
+    )),
+    adjustedBy: v.optional(v.id("users")), // Added adjustedBy
+    notes: v.optional(v.string()), // Added notes
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { stockQuantity: args.quantity });
+    const { id: inventoryId, quantity, orgId, reason, adjustedBy, notes } = args;
+    const item = await ctx.db.get(inventoryId);
+    if (!item) throw new Error("Inventory item not found");
+
+    // 1. Record Inventory Adjustment
+    await ctx.db.insert("inventoryAdjustments", {
+      inventoryId,
+      quantityChange: quantity - item.stockQuantity, // Calculate change
+      reason: reason || "audit_correction", // Default reason if not provided
+      adjustedBy: adjustedBy || undefined, // Use provided or undefined
+      notes: notes || `Quantity updated from ${item.stockQuantity} to ${quantity}`,
+      date: new Date().toISOString(),
+      orgId: orgId,
+    });
+    
+    // 2. Patch current item
+    await ctx.db.patch(inventoryId, { stockQuantity: quantity });
   },
 });
 
@@ -582,7 +612,7 @@ export const updateInspectionItem = mutation({
 export const updateInspectionStatus = mutation({
   args: { 
     inspectionId: v.id("inspections"),
-    status: v.union(v.literal("in-progress"), v.literal("completed"), v.literal("shared")),
+    status: v.union(v.literal("in-progress"), v.literal("completed")),
   },
   handler: async (ctx, args) => {
     return await ctx.db.patch(args.inspectionId, { status: args.status });
@@ -845,6 +875,7 @@ export const createSale = mutation({
     customerId: v.optional(v.id("customers")),
     cashierId: v.optional(v.id("users")),
     notes: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     // Generate sale number
@@ -865,6 +896,16 @@ export const createSale = mutation({
         const newQuantity = Math.max(0, inventoryItem.stockQuantity - item.quantity);
         await ctx.db.patch(item.inventoryId, {
           stockQuantity: newQuantity,
+        });
+        // Also record an inventory adjustment for the sale
+        await ctx.db.insert("inventoryAdjustments", {
+          inventoryId: item.inventoryId,
+          quantityChange: -item.quantity,
+          reason: "sale",
+          adjustedBy: args.cashierId || undefined,
+          notes: `Sale ${saleNumber} for ${item.quantity} units of ${item.name}`,
+          date: new Date().toISOString(),
+          orgId: args.orgId,
         });
       }
     }
@@ -906,12 +947,14 @@ export const createReminder = mutation({
     title: v.string(),
     message: v.optional(v.string()),
     dueDate: v.string(),
+    orgId: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("reminders", {
+    const reminderId = await ctx.db.insert("reminders", {
       ...args,
       status: "pending",
     });
+    return reminderId; // Return the ID of the new reminder
   },
 });
 
@@ -1042,6 +1085,7 @@ export const addAutomotivePoi = mutation({
     contactPerson: v.optional(v.string()),
     source: v.string(),
     notes: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("automotivePois", {
@@ -1110,6 +1154,7 @@ export const addSparePart = mutation({
     steeringSideCritical: v.boolean(),
     failureRank: v.optional(v.number()),
     notes: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     // Calculate landed cost: (UAE * 1.25) + 20
@@ -1157,6 +1202,7 @@ export const addMarketPrice = mutation({
     condition: v.optional(v.string()),
     sampleSize: v.optional(v.number()),
     notes: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("marketPriceIntelligence", {
@@ -1221,6 +1267,7 @@ export const addMassPartner = mutation({
     fleetSize: v.optional(v.number()),
     specializations: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("massPartners", {
@@ -1314,11 +1361,13 @@ export const addExpense = mutation({
       v.literal("rejected"),
       v.literal("paid")
     ),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("expenses", {
       ...args,
       date: new Date().toISOString(),
+      status: "pending",
     });
   },
 });
@@ -1342,6 +1391,7 @@ export const addExpenseCategory = mutation({
       v.literal("equipment")
     ),
     description: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("expenseCategories", {
@@ -1374,17 +1424,19 @@ export const createPurchaseOrder = mutation({
     })),
     totalAmount: v.number(),
     expectedDate: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     const count = await ctx.db.query("purchaseOrders").collect();
     const poNumber = `PO-${String(count.length + 1).padStart(6, "0")}`;
     
-    return await ctx.db.insert("purchaseOrders", {
+    const poId = await ctx.db.insert("purchaseOrders", {
       ...args,
       poNumber,
       status: "draft",
       orderedAt: new Date().toISOString(),
     });
+    return poId; // Return the ID of the new purchase order
   },
 });
 
@@ -1423,6 +1475,16 @@ export const receivePurchaseOrder = mutation({
           stockQuantity: newQuantity,
           // Optionally update cost price to moving average
         });
+        // Also record an inventory adjustment for the receipt
+        await ctx.db.insert("inventoryAdjustments", {
+          inventoryId: inventoryItem._id,
+          quantityChange: item.quantityOrdered,
+          reason: "purchase_receipt",
+          adjustedBy: undefined, // Could be a user ID if tracked
+          notes: `Received ${item.quantityOrdered} units of ${item.name} from PO ${po.poNumber}`,
+          date: new Date().toISOString(),
+          orgId: po.orgId,
+        });
       }
     }
   },
@@ -1433,9 +1495,10 @@ export const getInventoryAdjustments = query({
   args: { inventoryId: v.optional(v.id("inventory")) },
   handler: async (ctx, args) => {
     if (args.inventoryId) {
+      const inventoryId = args.inventoryId;
       return await ctx.db
         .query("inventoryAdjustments")
-        .withIndex("by_inventory", (q) => q.eq("inventoryId", args.inventoryId))
+        .withIndex("by_inventory", (q) => q.eq("inventoryId", inventoryId))
         .collect();
     }
     return await ctx.db.query("inventoryAdjustments").collect();
@@ -1459,6 +1522,7 @@ export const adjustStock = mutation({
     ),
     adjustedBy: v.id("users"),
     notes: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     // 1. Create Audit Record
@@ -1503,6 +1567,7 @@ export const createServicePackage = mutation({
       description: v.string(),
       quantity: v.number(),
     })),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("servicePackages", {
@@ -1529,6 +1594,7 @@ export const clockIn = mutation({
     workOrderId: v.id("workOrders"),
     serviceId: v.optional(v.string()), // e.g. "Oil Change" line item ID
     notes: v.optional(v.string()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     // Check if already clocked in? Implementation simplified for now.
@@ -1603,6 +1669,7 @@ export const createInspectionTemplate = mutation({
       })),
     })),
     isDefault: v.optional(v.boolean()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     // If setting as default, unset other defaults
@@ -1689,6 +1756,7 @@ export const createCannedJob = mutation({
     applicableVehicles: v.optional(v.array(v.string())),
     isPackageDeal: v.optional(v.boolean()),
     packageDiscount: v.optional(v.number()),
+    orgId: v.string(), // Added orgId
   },
   handler: async (ctx, args) => {
     const totalLaborCost = args.laborHours * args.laborRate;
@@ -1758,7 +1826,8 @@ export const createCustomerApproval = mutation({
   args: {
     estimateId: v.id("estimates"),
     customerId: v.id("customers"),
-    sentVia: v.union(v.literal("sms"), v.literal("email"), v.literal("whatsapp")),
+    sentVia: v.union(v.literal("email"), v.literal("sms"), v.literal("whatsapp")),
+    orgId: v.string(),
   },
   handler: async (ctx, args) => {
     // Generate unique token
@@ -1837,6 +1906,7 @@ export const startDvi = mutation({
     vehicleId: v.id("vehicles"),
     templateId: v.optional(v.id("inspectionTemplates")),
     technicianId: v.id("users"),
+    orgId: v.string(),
   },
   handler: async (ctx, args) => {
     // Get template if specified, or use default

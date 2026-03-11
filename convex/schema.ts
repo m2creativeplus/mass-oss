@@ -715,13 +715,15 @@ export default defineSchema({
   // Tracks manual corrections, shrinkage, or damages
   inventoryAdjustments: defineTable({
     inventoryId: v.id("inventory"),
-    adjustedBy: v.id("users"),
+    adjustedBy: v.optional(v.id("users")),
     quantityChange: v.number(), // Positive or Negative
     reason: v.union(
       v.literal("damage"),
       v.literal("theft"),
       v.literal("audit_correction"),
       v.literal("return_restock"),
+      v.literal("sale"),
+      v.literal("purchase_receipt"),
       v.literal("other")
     ),
     notes: v.optional(v.string()),
