@@ -10,27 +10,38 @@ export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://artful-jaguar-416.convex.cloud");
-  const post = await convex.query(api.cms.getBlogPostBySlug, { slug: params.slug });
-  
-  if (!post) {
-    return { title: 'Post Not Found' };
-  }
-
-  return {
-    title: `${post.metaTitle || post.title} | MASS OSS Insights`,
-    description: post.metaDescription || post.excerpt,
-    openGraph: {
-      title: post.metaTitle || post.title,
-      description: post.metaDescription || post.excerpt,
-      type: 'article',
-      publishedTime: post.publishedAt,
+  try {
+    const post = await convex.query(api.cms.getBlogPostBySlug, { slug: params.slug });
+    
+    if (!post) {
+      return { title: 'Post Not Found' };
     }
-  };
+
+    return {
+      title: `${post.metaTitle || post.title} | MASS OSS Insights`,
+      description: post.metaDescription || post.excerpt,
+      openGraph: {
+        title: post.metaTitle || post.title,
+        description: post.metaDescription || post.excerpt,
+        type: 'article',
+        publishedTime: post.publishedAt,
+      }
+    };
+  } catch (error) {
+    console.error("Metadata fetch error:", error);
+    return { title: 'MASS OSS Insights' };
+  }
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://artful-jaguar-416.convex.cloud");
-  const post = await convex.query(api.cms.getBlogPostBySlug, { slug: params.slug });
+  let post = null;
+  
+  try {
+    post = await convex.query(api.cms.getBlogPostBySlug, { slug: params.slug });
+  } catch (error) {
+    console.error("Post fetch error during build:", error);
+  }
 
   if (!post) {
     notFound();
@@ -50,7 +61,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         <article>
           <header className="mb-12">
             <div className="flex flex-wrap gap-2 mb-6">
-              {post.tags?.map((tag, i) => (
+              {post.tags?.map((tag: string, i: number) => (
                 <span key={i} className="px-3 py-1.5 text-xs font-semibold bg-orange-500/10 text-orange-400 rounded-lg border border-orange-500/20">
                   {tag}
                 </span>

@@ -6,15 +6,30 @@ import { Button } from "@/components/ui/button";
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
+interface BlogPost {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  tags?: string[];
+  publishedAt?: number;
+  viewCount?: number;
+}
+
 export default async function BlogIndexPage() {
   // Initialize standard Convex client for server components
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://artful-jaguar-416.convex.cloud");
   
   // Fetch published posts for the default organization
-  const posts = await convex.query(api.cms.getBlogPosts, { 
-    orgId: "demo-org-001", 
-    status: "published" 
-  });
+  let posts: BlogPost[] = [];
+  try {
+    posts = await convex.query(api.cms.getBlogPosts, { 
+      orgId: "demo-org-001", 
+      status: "published" 
+    }) as BlogPost[];
+  } catch (error) {
+    console.error("Failed to fetch blog posts during build:", error);
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 relative overflow-hidden flex flex-col pt-24 pb-20">
@@ -43,7 +58,7 @@ export default async function BlogIndexPage() {
                   
                   {/* Tags */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {post.tags?.slice(0, 2).map((tag, i) => (
+                    {post.tags?.slice(0, 2).map((tag: string, i: number) => (
                       <span key={i} className="px-2 py-1 text-xs font-medium bg-slate-800 text-slate-300 rounded-md border border-white/5">
                         {tag}
                       </span>
