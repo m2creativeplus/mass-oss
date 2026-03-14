@@ -32,6 +32,19 @@ const SPARE_PARTS = [
   { partNumber: "04465-28500", name: "Front Brake Pads", category: "Brakes", priceTier: "genuine_oem", price: 65 },
 ];
 
+const NEW_CUSTOMERS = [
+  { firstName: "Abdirahman", lastName: "Ismail", email: "abdi@example.com", phone: "+252 63 4111111", type: "individual" },
+  { firstName: "Fardowsa", lastName: "Ahmed", email: "fardowsa@example.com", phone: "+252 63 4222222", type: "individual" },
+  { firstName: "Mustafe", lastName: "Yasin", email: "mustafe@example.com", phone: "+252 63 4333333", type: "individual" },
+  { firstName: "Hodan", lastName: "Abdi", email: "hodan@example.com", phone: "+252 63 4444444", type: "individual" },
+  { firstName: "Khader", lastName: "Gedi", email: "khader@example.com", phone: "+252 63 4555555", type: "individual" },
+  { firstName: "Mubarak", lastName: "Omar", email: "mubarak@example.com", phone: "+252 63 4666666", type: "fleet" },
+  { firstName: "Siham", lastName: "Dualeh", email: "siham@example.com", phone: "+252 63 4777777", type: "individual" },
+  { firstName: "Sahra", lastName: "Yusuf", email: "sahra@example.com", phone: "+252 63 4888888", type: "individual" },
+  { firstName: "Adam", lastName: "Warsame", email: "adam@example.com", phone: "+252 63 4999999", type: "individual" },
+  { firstName: "Nimo", lastName: "Hassan", email: "nimo@example.com", phone: "+252 63 4000000", type: "individual" },
+];
+
 export const seedFullDemo = mutation({
   args: {},
   handler: async (ctx) => {
@@ -152,6 +165,30 @@ export const seedFullDemo = mutation({
     }
      console.log(`✅ Seeded ${partCount} Spare Parts`);
 
-    return `MASS Demo Seed Complete: Verified Org, ${poiCount} POIs, ${vehicleCount} Vehicles, ${partCount} Parts.`;
+    // 5. SEED CUSTOMERS
+    let customerCount = 0;
+    for (const c of NEW_CUSTOMERS) {
+        const existing = await ctx.db.query("customers")
+            .withIndex("by_org", q => q.eq("orgId", orgId))
+            .filter(q => q.eq(q.field("email"), c.email))
+            .first();
+
+        if (!existing) {
+            await ctx.db.insert("customers", {
+                firstName: c.firstName,
+                lastName: c.lastName,
+                email: c.email,
+                phone: c.phone,
+                type: c.type as any,
+                orgId: orgId,
+                isActive: true,
+                createdAt: new Date().toISOString()
+            });
+            customerCount++;
+        }
+    }
+    console.log(`✅ Seeded ${customerCount} Customers`);
+
+    return `MASS Demo Seed Complete: Verified Org, ${poiCount} POIs, ${vehicleCount} Vehicles, ${partCount} Parts, ${customerCount} Customers.`;
   }
 });
