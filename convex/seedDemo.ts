@@ -179,10 +179,9 @@ export const seedFullDemo = mutation({
                 lastName: c.lastName,
                 email: c.email,
                 phone: c.phone,
-                type: c.type as any,
                 orgId: orgId,
                 isActive: true,
-                createdAt: new Date().toISOString()
+                customerNumber: `CUST-DEMO-${customerCount}`
             });
             customerCount++;
         }

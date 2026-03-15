@@ -23,110 +23,85 @@ body {
 
 @layer base {
   :root {
-    /* Premium Automotive Color Palette */
-    --background: 220 14% 96%;
-    --foreground: 224 71% 4%;
+    /* Sovereign National Branding - Somaliland */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 0 0% 0%;
     
-    /* Primary: MASS Orange */
-    --primary: 24 95% 53%;
-    --primary-foreground: 0 0% 100%;
+    /* Sovereign Gold: #D4AF37 (HSL: 46 65% 52%) */
+    --primary: 46 65% 52%;
+    --primary-foreground: 0 0% 0%;
     
-    /* Secondary: Slate */
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 9% 46%;
+    /* pure Secondary: Black */
+    --secondary: 0 0% 0%;
+    --secondary-foreground: 0 0% 100%;
     
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
     
-    /* Accent: Electric Blue */
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Gold */
+    --accent: 46 65% 52%;
+    --accent-foreground: 0 0% 0%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Success: Emerald */
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 46 65% 52%;
     
-    /* Warning: Amber */
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
+    --radius: 0.5rem;
     
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 24 95% 53%;
-    
-    /* Chart Colors - Automotive Inspired */
-    --chart-1: 24 95% 53%;    /* Orange */
-    --chart-2: 142 71% 45%;   /* Emerald */
-    --chart-3: 217 91% 60%;   /* Blue */
-    --chart-4: 262 83% 58%;   /* Purple */
-    --chart-5: 340 82% 52%;   /* Pink */
-    
-    --radius: 0.75rem;
-    
-    /* Sidebar - Premium Dark */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 213 31% 91%;
-    --sidebar-primary: 24 95% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 24 95% 53%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 46 65% 52%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 46 65% 52%;
     
     /* Glassmorphism */
     --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-border: rgba(212, 175, 55, 0.3);
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
   
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    --card: 222 47% 11%;
-    --card-foreground: 213 31% 91%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 24 95% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 213 31% 91%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 24 95% 53%;
-    --chart-1: 24 95% 53%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 217 91% 60%;
-    --chart-4: 262 83% 58%;
-    --chart-5: 340 82% 52%;
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 213 31% 91%;
-    --sidebar-primary: 24 95% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 24 95% 53%;
+    /* Institutional Black: #000000 */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
     
-    --glass-bg: rgba(30, 41, 59, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    /* Sovereign Gold: #D4AF37 */
+    --primary: 46 65% 52%;
+    --primary-foreground: 0 0% 0%;
+    
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 65%;
+    
+    --accent: 46 65% 52%;
+    --accent-foreground: 0 0% 0%;
+    
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 46 65% 52%;
+    
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 100%;
+    
+    --glass-bg: rgba(0, 0, 0, 0.7);
+    --glass-border: rgba(212, 175, 55, 0.2);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
   }
   
   /* Sovereign Institutional Theme (Toggle) */

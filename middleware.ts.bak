@@ -1,0 +1,46 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+/**
+ * MASS VWMS Middleware
+ * Handles route protection and role-based access control.
+ * Authorized by M2 Autopilot Protocol 2026.
+ */
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // 1. Skip middleware for static assets, public files, and API routes
+  if (
+    pathname === '/' ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/') ||
+    pathname.includes('.') ||
+    pathname === '/login' ||
+    pathname.startsWith('/blog') ||
+    pathname.startsWith('/insights') ||
+    ['/features', '/solutions', '/pricing', '/contact', '/privacy', '/terms'].includes(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
+  // 2. Session check (Fallback to cookie verification)
+  const hasSession = 
+    request.cookies.has('supabase-auth-token') || 
+    request.cookies.has('sb-access-token') ||
+    request.cookies.has('__clerk_db_jwt') ||
+    request.cookies.has('mass_workshop_auth'); // Support for Convex Demo Auth
+
+  if (!hasSession) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|login).*)',
+  ],
+};

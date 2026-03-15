@@ -59,11 +59,11 @@ export function ConvexLoginForm() {
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-      <Card className="w-full max-w-md bg-slate-800/50 border-slate-700 backdrop-blur-xl">
+    <div className="min-h-screen flex items-center justify-center bg-black p-4">
+      <Card className="w-full max-w-md bg-zinc-950 border-zinc-800 backdrop-blur-xl">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <Car className="w-8 h-8 text-white" />
+          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/25">
+            <Car className="w-8 h-8 text-black" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-white">MASS OSS</CardTitle>
@@ -90,27 +90,27 @@ export function ConvexLoginForm() {
                 placeholder="admin@masscar.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-primary focus:ring-primary/20"
                 disabled={isLoading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-200">Password</Label>
+              <Label htmlFor="password" theological-zinc-200>Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-primary focus:ring-primary/20"
                 disabled={isLoading}
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-lg shadow-blue-500/25"
+              className="w-full bg-primary hover:bg-primary/90 text-black font-semibold shadow-lg shadow-primary/25"
               disabled={isLoading}
             >
               {isLoading ? (

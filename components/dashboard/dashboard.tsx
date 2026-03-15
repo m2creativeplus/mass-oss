@@ -226,19 +226,29 @@ export function Dashboard({ orgId }: { orgId?: string }) {
   // Computed stats
   const totalCustomers = customers?.length ?? 0
   const totalVehicles = vehicles?.length ?? 0
-  const activeWorkOrders = workOrders?.filter((wo: any) =>
-    ["check-in", "inspecting", "in-progress", "awaiting-approval", "waiting-parts"].includes(wo.status)
+  const activeWorkOrders = workOrders?.filter((wo) =>
+    ["check-in", "inspecting", "in-progress", "awaiting-approval", "waiting-parts"].includes(wo.status as string)
   ).length ?? 0
-  const totalParts = inventory?.reduce((sum: number, item: any) => sum + (item.stockQuantity ?? 0), 0) ?? 0
-  const lowStockParts = inventory?.filter((item: any) => (item.stockQuantity ?? 0) <= (item.reorderPoint ?? 0)).length ?? 0
+  const totalParts = inventory?.reduce((sum: number, item) => sum + ((item.stockQuantity as number) ?? 0), 0) ?? 0
+  const lowStockParts = inventory?.filter((item) => ((item.stockQuantity as number) ?? 0) <= ((item.reorderPoint as number) ?? 0)).length ?? 0
 
   // Custom tooltip for charts
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipProps {
+    active?: boolean
+    payload?: Array<{
+      name: string
+      value: number
+      color: string
+    }>
+    label?: string
+  }
+
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 text-sm">
           <p className="font-semibold mb-1">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <p key={index} className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full" style={{ background: entry.color }} />
               {entry.name}: ${entry.value.toLocaleString()}

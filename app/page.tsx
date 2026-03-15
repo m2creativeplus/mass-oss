@@ -8,7 +8,7 @@ import { Ecosystem } from "@/components/sections/ecosystem";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-950 text-white selection:bg-orange-500/30 font-sans flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-black text-white selection:bg-orange-500/30 font-sans flex flex-col relative overflow-hidden">
       <Header />
       
       <main className="flex-1">
