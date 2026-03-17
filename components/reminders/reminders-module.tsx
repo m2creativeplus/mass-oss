@@ -20,6 +20,8 @@ import {
   Phone,
   Mail
 } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface Reminder {
   id: string
@@ -32,42 +34,7 @@ interface Reminder {
   notes?: string
 }
 
-const mockReminders: Reminder[] = [
-  {
-    id: "REM-001",
-    type: "service",
-    vehicle: { make: "Toyota", model: "Land Cruiser", year: 2018, plate: "GHI-3456" },
-    customer: { name: "Khadija Jama", phone: "+252-63-5678901", email: "khadija@email.com" },
-    dueDate: "2026-01-05",
-    status: "pending",
-    notes: "6-month oil change due"
-  },
-  {
-    id: "REM-002",
-    type: "registration",
-    vehicle: { make: "Toyota", model: "Camry", year: 2020, plate: "ABC-1234" },
-    customer: { name: "Ahmed Hassan", phone: "+252-63-4567890", email: "ahmed@email.com" },
-    dueDate: "2026-01-15",
-    status: "sent",
-    lastNotified: "2025-12-30"
-  },
-  {
-    id: "REM-003",
-    type: "insurance",
-    vehicle: { make: "Nissan", model: "Patrol", year: 2021, plate: "DEF-9012" },
-    customer: { name: "Said Ibrahim", phone: "+252-63-2345678", email: "said@email.com" },
-    dueDate: "2025-12-28",
-    status: "overdue"
-  },
-  {
-    id: "REM-004",
-    type: "inspection",
-    vehicle: { make: "Honda", model: "Civic", year: 2019, plate: "XYZ-5678" },
-    customer: { name: "Fatima Omar", phone: "+252-63-7890123", email: "fatima@email.com" },
-    dueDate: "2026-02-01",
-    status: "pending"
-  },
-]
+// Removed mockReminders
 
 const REMINDER_TYPES = {
   service: { label: "Service Due", color: "bg-blue-500", icon: Car },
@@ -76,11 +43,24 @@ const REMINDER_TYPES = {
   inspection: { label: "Inspection", color: "bg-cyan-500", icon: CheckCircle2 },
 }
 
-export function RemindersModule() {
+export function RemindersModule({ orgId = "mass-hargeisa" }: { orgId?: string }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  
+  const remindersQuery = useQuery(api.functions.getReminders)
 
-  const filteredReminders = mockReminders.filter(reminder => {
+  const mappedReminders: Reminder[] = (remindersQuery || []).map((r: any) => ({
+    id: r._id,
+    type: (r.type || "service") as Reminder["type"],
+    vehicle: { make: r.vehicleMake || "N/A", model: r.vehicleModel || "N/A", year: r.vehicleYear || new Date().getFullYear(), plate: r.vehiclePlate || "N/A" },
+    customer: { name: r.customerName || "N/A", phone: r.customerPhone || "N/A", email: r.customerEmail || "" },
+    dueDate: r.dueDate,
+    status: (r.status || "pending") as Reminder["status"],
+    lastNotified: r.lastNotified,
+    notes: r.notes
+  }))
+
+  const filteredReminders = mappedReminders.filter(reminder => {
     const matchesSearch = 
       reminder.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       reminder.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -110,9 +90,9 @@ export function RemindersModule() {
   }
 
   // Stats
-  const overdueCount = mockReminders.filter(r => r.status === "overdue").length
-  const pendingCount = mockReminders.filter(r => r.status === "pending").length
-  const sentCount = mockReminders.filter(r => r.status === "sent").length
+  const overdueCount = mappedReminders.filter(r => r.status === "overdue").length
+  const pendingCount = mappedReminders.filter(r => r.status === "pending").length
+  const sentCount = mappedReminders.filter(r => r.status === "sent").length
 
   return (
     <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-950 p-6">
@@ -171,7 +151,7 @@ export function RemindersModule() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-green-100 text-sm">Total</p>
-              <h3 className="text-2xl font-bold">{mockReminders.length}</h3>
+              <h3 className="text-2xl font-bold">{mappedReminders.length}</h3>
             </div>
             <Bell className="h-8 w-8 opacity-80" />
           </CardContent>
@@ -186,7 +166,7 @@ export function RemindersModule() {
           onClick={() => setTypeFilter("all")}
           className={typeFilter === "all" ? "bg-slate-800" : ""}
         >
-          All ({mockReminders.length})
+          All ({mappedReminders.length})
         </Button>
         {Object.entries(REMINDER_TYPES).map(([key, value]) => (
           <Button 
@@ -196,7 +176,7 @@ export function RemindersModule() {
             onClick={() => setTypeFilter(key)}
             className={typeFilter === key ? value.color : ""}
           >
-            {value.label} ({mockReminders.filter(r => r.type === key).length})
+            {value.label} ({mappedReminders.filter(r => r.type === key).length})
           </Button>
         ))}
       </div>
@@ -320,7 +300,7 @@ export function RemindersModule() {
         {/* Pagination Footer */}
         <div className="bg-slate-50 dark:bg-slate-800 px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center sm:px-6">
            <div className="text-xs text-slate-500">
-             Showing 1 to {filteredReminders.length} of {mockReminders.length} entries
+             Showing {filteredReminders.length} entries
            </div>
            <div className="flex gap-1">
              <Button variant="outline" size="sm" className="h-7 text-xs" disabled>Previous</Button>

@@ -24,17 +24,10 @@ import {
 import { processPayment } from "@/lib/payments"
 import { generateInvoicePDF, downloadInvoice } from "@/lib/pdf-invoice"
 import { AuditLog } from "@/lib/activity-logs"
-import { inventoryData } from "@/lib/data"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
-// Use real inventory data
-const partsInventory = inventoryData.map(part => ({
-  id: part.id,
-  name: part.name,
-  sku: part.partNumber,
-  price: part.price,
-  stock: part.stock,
-  category: part.category
-}))
+// Remove hardcoded inventory data integration
 
 interface CartItem {
   id: string
@@ -45,7 +38,7 @@ interface CartItem {
 
 type PaymentMethod = "cash" | "zaad" | "edahab" | "card"
 
-export function PartSellsModule() {
+export function PartSellsModule({ orgId = "mass-hargeisa" }: { orgId?: string }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash")
@@ -54,6 +47,17 @@ export function PartSellsModule() {
   const [customerPhone, setCustomerPhone] = useState("")
   const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null)
   const [paymentResult, setPaymentResult] = useState<{ transactionId: string; message: string } | null>(null)
+
+  const inventoryData = useQuery(api.functions.getInventory, { orgId })
+  
+  const partsInventory = (inventoryData || []).map(part => ({
+    id: part._id,
+    name: part.name,
+    sku: part.partNumber,
+    price: part.sellingPrice,
+    stock: part.stockQuantity,
+    category: part.category
+  }))
 
   const filteredParts = partsInventory.filter(part =>
     part.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -219,8 +223,20 @@ export function PartSellsModule() {
         </div>
 
         {/* Parts Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredParts.map((part) => (
+        {inventoryData === undefined ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+            <Loader2 className="h-8 w-8 animate-spin mb-4" />
+            <p>Loading inventory...</p>
+          </div>
+        ) : filteredParts.length === 0 ? (
+          <div className="text-center py-20 text-slate-500">
+            <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
+            <p className="text-lg font-medium">No parts found</p>
+            <p className="text-sm">Try adjusting your search</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredParts.map((part) => (
             <Card 
               key={part.id}
               className="cursor-pointer hover:shadow-lg hover:border-orange-300 transition-all duration-200"
@@ -242,6 +258,7 @@ export function PartSellsModule() {
             </Card>
           ))}
         </div>
+        )}
       </div>
 
       {/* Right Side - Cart & Payment */}

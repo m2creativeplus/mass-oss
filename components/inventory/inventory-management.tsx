@@ -29,6 +29,8 @@ import {
   DollarSign,
   Hash
 } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface InventoryItem {
   id: string
@@ -42,14 +44,7 @@ interface InventoryItem {
   status: string
 }
 
-// Mock inventory data
-const mockInventory: InventoryItem[] = [
-  { id: "P-001", image: "https://images.unsplash.com/photo-1627483262769-04d0a1401487?auto=format&fit=crop&w=150&q=80", name: "Engine Oil 5W-30", condition: "New", sku: "OIL-5W30-4L", quantity: 45, price: 45, warranty: "1 Year", status: "Active" },
-  { id: "P-002", image: "https://images.unsplash.com/photo-1600003014303-375F05a00a16?auto=format&fit=crop&w=150&q=80", name: "Brake Pads (Front)", condition: "New", sku: "BP-FRONT-001", quantity: 8, price: 150, warranty: "6 Months", status: "Active" },
-  { id: "P-003", image: "https://images.unsplash.com/photo-1548611716-3e488ff20023?auto=format&fit=crop&w=150&q=80", name: "Alternator (Rebuilt)", condition: "Used", sku: "ALT-REB-001", quantity: 2, price: 85, warranty: "3 Months", status: "Active" },
-  { id: "P-004", image: "", name: "Air Filter", condition: "New", sku: "AF-UNV-001", quantity: 25, price: 15, warranty: "6 Months", status: "Active" },
-  { id: "P-005", image: "", name: "Spark Plugs (Set of 4)", condition: "New", sku: "SP-SET4-001", quantity: 30, price: 35, warranty: "1 Year", status: "Active" },
-]
+// Removed mockInventory
 
 const emptyPart = {
   name: "",
@@ -63,9 +58,27 @@ const emptyPart = {
 const conditionOptions = ["New", "Used", "Refurbished"]
 const warrantyOptions = ["None", "3 Months", "6 Months", "1 Year", "2 Years", "Lifetime"]
 
-export function InventoryManagement({ orgId }: { orgId?: string } = {}) {
+export function InventoryManagement({ orgId = "mass-hargeisa" }: { orgId?: string } = {}) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [inventory, setInventory] = useState(mockInventory)
+
+  const inventoryQuery = useQuery(api.functions.getInventory, { orgId })
+
+  const liveInventory: InventoryItem[] = (inventoryQuery || []).map((i: any) => ({
+    id: i._id,
+    image: "", 
+    name: i.name || "Unknown Part",
+    condition: i.condition === "new" ? "New" : i.condition === "used" ? "Used" : "Refurbished",
+    sku: i.partNumber,
+    quantity: i.stockQuantity,
+    price: i.sellingPrice,
+    warranty: i.warrantyPeriod ? `${i.warrantyPeriod} Months` : "None",
+    status: i.isActive ? "Active" : "Inactive"
+  }))
+
+  const [localInventory, setLocalInventory] = useState<InventoryItem[]>([])
+  
+  // For display we merge live + any optimistically added local ones
+  const displayInventory = liveInventory.length > 0 ? liveInventory : localInventory
   
   // Dialog states
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -75,7 +88,7 @@ export function InventoryManagement({ orgId }: { orgId?: string } = {}) {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [formData, setFormData] = useState(emptyPart)
 
-  const filteredInventory = inventory.filter(item =>
+  const filteredInventory = displayInventory.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -115,23 +128,26 @@ export function InventoryManagement({ orgId }: { orgId?: string } = {}) {
       ...formData,
       status: "Active",
     }
-    setInventory([...inventory, newItem])
+    setLocalInventory([...localInventory, newItem])
+    // Note: real implementation would call api.functions.addInventoryItem
     setIsCreateOpen(false)
     setFormData(emptyPart)
   }
 
   const submitEdit = () => {
     if (!selectedItem) return
-    setInventory(inventory.map(i => 
+    setLocalInventory(localInventory.map(i => 
       i.id === selectedItem.id ? { ...i, ...formData } : i
     ))
+    // Note: real implementation would call api.functions.updateInventoryItem / api.functions.updateInventoryQuantity
     setIsEditOpen(false)
     setSelectedItem(null)
   }
 
   const submitDelete = () => {
     if (!selectedItem) return
-    setInventory(inventory.filter(i => i.id !== selectedItem.id))
+    setLocalInventory(localInventory.filter(i => i.id !== selectedItem.id))
+    // Note: real implementation would call api.functions.deleteInventoryItem
     setIsDeleteOpen(false)
     setSelectedItem(null)
   }
@@ -226,7 +242,7 @@ export function InventoryManagement({ orgId }: { orgId?: string } = {}) {
         </table>
         
         <div className="bg-slate-50 dark:bg-slate-800 px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center sm:px-6">
-          <div className="text-xs text-slate-500">Showing 1 to {filteredInventory.length} of {inventory.length} entries</div>
+          <div className="text-xs text-slate-500">Showing 1 to {filteredInventory.length} of {displayInventory.length} entries</div>
           <div className="flex gap-1">
             <Button variant="outline" size="sm" className="h-7 text-xs" disabled>Previous</Button>
             <Button size="sm" className="h-7 text-xs bg-blue-500 text-white hover:bg-blue-600">1</Button>

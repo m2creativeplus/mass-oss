@@ -13,6 +13,8 @@ import {
   Star,
   Phone
 } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface Technician {
   id: string
@@ -26,57 +28,29 @@ interface Technician {
   specialties: string[]
 }
 
-const mockTechnicians: Technician[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    role: "Senior Mechanic",
-    phone: "+252 63 111 2222",
-    status: "working",
-    completedToday: 3,
-    efficiency: 95,
-    rating: 4.8,
-    specialties: ["Engine Repair", "Brake Systems"]
-  },
-  {
-    id: "2",
-    name: "Mike Ross",
-    role: "Mechanic",
-    phone: "+252 63 333 4444",
-    status: "available",
-    completedToday: 2,
-    efficiency: 88,
-    rating: 4.6,
-    specialties: ["Oil Service", "General Maintenance"]
-  },
-  {
-    id: "3",
-    name: "Sarah Smith",
-    role: "Technician",
-    phone: "+252 63 555 6666",
-    status: "break",
-    completedToday: 4,
-    efficiency: 92,
-    rating: 4.9,
-    specialties: ["Electrical Systems", "Diagnostics"]
-  },
-  {
-    id: "4",
-    name: "Ahmed Hassan",
-    role: "Junior Mechanic",
-    phone: "+252 63 777 8888",
-    status: "working",
-    completedToday: 1,
-    efficiency: 75,
-    rating: 4.2,
-    specialties: ["Tire Service", "Oil Change"]
-  },
-]
+// Removed mockTechnicians
 
-export function TechnicianDashboard() {
+export function TechnicianDashboard({ orgId = "mass-hargeisa" }: { orgId?: string }) {
   const [searchQuery, setSearchQuery] = useState("")
+  
+  const users = useQuery(api.functions.getUsers)
+  
+  // Transform DB users to Technician format, strictly filtering for technicians
+  const techniciansData: Technician[] = (users || [])
+    .filter(u => u.role === "technician")
+    .map(user => ({
+      id: user._id,
+      name: `${user.firstName} ${user.lastName}`,
+      role: "Mechanic",
+      phone: user.phone || "N/A",
+      status: (user as any).status ? ((user as any).status as Technician["status"]) : "available",
+      completedToday: Math.floor(Math.random() * 5), // Mock for now until jobs connected
+      efficiency: 80 + Math.floor(Math.random() * 20), // Mock for now
+      rating: 4 + Math.random(), // Mock for now
+      specialties: ["General Maintenance"] // Mock for now
+    }))
 
-  const filteredTechnicians = mockTechnicians.filter(tech =>
+  const filteredTechnicians = techniciansData.filter(tech =>
     tech.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tech.role.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -247,7 +221,7 @@ export function TechnicianDashboard() {
         {/* Pagination Footer */}
         <div className="bg-slate-50 dark:bg-slate-800 px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center sm:px-6">
            <div className="text-xs text-slate-500">
-             Showing 1 to {filteredTechnicians.length} of {mockTechnicians.length} entries
+             Showing {filteredTechnicians.length} entries
            </div>
            <div className="flex gap-1">
              <Button variant="outline" size="sm" className="h-7 text-xs" disabled>Previous</Button>

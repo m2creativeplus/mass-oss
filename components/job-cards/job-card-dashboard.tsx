@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Eye, Edit, Printer, Clock, CheckCircle2, AlertCircle, Wrench } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface JobCard {
   id: string
@@ -17,12 +19,7 @@ interface JobCard {
   estimatedCost: number
 }
 
-const mockJobCards: JobCard[] = [
-  { id: "1", jobNumber: "JOB-2024-001", vehicle: "Toyota Land Cruiser 79", customer: "Mohamed Ahmed", technician: "John Doe", status: "in-progress", startDate: "2025-12-30", estimatedCost: 450 },
-  { id: "2", jobNumber: "JOB-2024-002", vehicle: "Honda Fit 2017", customer: "Sarah Hassan", technician: "Mike Ross", status: "completed", startDate: "2025-12-28", estimatedCost: 280 },
-  { id: "3", jobNumber: "JOB-2024-003", vehicle: "Nissan Patrol 2019", customer: "Ahmed Ali", technician: "John Doe", status: "draft", startDate: "2025-12-31", estimatedCost: 750 },
-  { id: "4", jobNumber: "JOB-2024-004", vehicle: "Toyota Hilux 2020", customer: "Fatima Omar", technician: "Sarah Smith", status: "invoiced", startDate: "2025-12-25", estimatedCost: 320 },
-]
+// Removed mockJobCards
 
 const statusConfig = {
   draft: { color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300", icon: Clock, label: "Draft" },
@@ -37,7 +34,27 @@ interface JobCardDashboardProps {
   onEdit?: (id: string) => void
 }
 
-export function JobCardDashboard({ onCreate, onView, onEdit }: JobCardDashboardProps) {
+export function JobCardDashboard({ onCreate, onView, onEdit, orgId = "mass-hargeisa" }: JobCardDashboardProps & { orgId?: string }) {
+  const workOrdersQuery = useQuery(api.functions.getWorkOrders, { orgId });
+  
+  const mappedJobCards: JobCard[] = (workOrdersQuery || []).map((w: any) => {
+    let mappedStatus: JobCard["status"] = "draft";
+    if (["in-progress", "waiting-parts"].includes(w.status)) mappedStatus = "in-progress";
+    if (w.status === "complete") mappedStatus = "completed";
+    if (w.status === "invoiced") mappedStatus = "invoiced";
+    
+    return {
+      id: w._id,
+      jobNumber: w.jobNumber,
+      vehicle: "Vehicle Info Pending", // Needs populated join
+      customer: "Customer Info Pending", // Needs populated join
+      technician: "Technician Pending", // Needs populated join
+      status: mappedStatus,
+      startDate: new Date(w._creationTime).toLocaleDateString(),
+      estimatedCost: 0
+    }
+  });
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-center">
@@ -52,7 +69,7 @@ export function JobCardDashboard({ onCreate, onView, onEdit }: JobCardDashboardP
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {Object.entries(statusConfig).map(([status, config]) => {
-          const count = mockJobCards.filter(j => j.status === status).length
+          const count = mappedJobCards.filter(j => j.status === status).length
           const Icon = config.icon
           return (
             <Card key={status} className="glass-card">
@@ -87,7 +104,7 @@ export function JobCardDashboard({ onCreate, onView, onEdit }: JobCardDashboardP
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockJobCards.map((job) => {
+              {mappedJobCards.map((job) => {
                 const config = statusConfig[job.status]
                 return (
                   <TableRow key={job.id}>
