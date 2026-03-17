@@ -19,6 +19,7 @@ import type * as partRequests from "../partRequests.js";
 import type * as seed from "../seed.js";
 import type * as seedCms from "../seedCms.js";
 import type * as seedDemo from "../seedDemo.js";
+import type * as seedWorkshop from "../seedWorkshop.js";
 import type * as seeding from "../seeding.js";
 
 import type {
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   seedCms: typeof seedCms;
   seedDemo: typeof seedDemo;
+  seedWorkshop: typeof seedWorkshop;
   seeding: typeof seeding;
 }>;
 
