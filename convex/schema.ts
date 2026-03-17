@@ -22,6 +22,16 @@ export default defineSchema({
     isActive: v.boolean(),
     avatarUrl: v.optional(v.string()),
     lastLoginAt: v.optional(v.string()),
+    currentLoad: v.optional(v.number()), // Number of active jobs
+    maxCapacity: v.optional(v.number()), // Allowed concurrent jobs
+    skillLevel: v.optional(v.object({
+      engine: v.number(),
+      electrical: v.number(),
+      suspension: v.number(),
+      body: v.number(),
+    })),
+    specialties: v.optional(v.array(v.string())),
+    efficiency: v.optional(v.number()),
   }).index("by_email", ["email"])
     .index("by_role", ["role"]),
 
@@ -110,6 +120,17 @@ export default defineSchema({
     .index("by_plate", ["licensePlate"])
     .index("by_status", ["status"])
     .index("by_org", ["orgId"]),
+
+  // ============ 3.5 BAYS (Workshop Logistics) ============
+  bays: defineTable({
+    name: v.string(),
+    type: v.union(v.literal("mechanical"), v.literal("body"), v.literal("paint")),
+    status: v.union(v.literal("free"), v.literal("occupied"), v.literal("waiting_parts")),
+    technicianId: v.optional(v.id("users")),
+    jobId: v.optional(v.id("workOrders")),
+    orgId: v.string(),
+  }).index("by_org", ["orgId"])
+    .index("by_status", ["status"]),
 
   // ============ 4. SUPPLIERS (Vendor Database) ============
   suppliers: defineTable({
@@ -235,9 +256,11 @@ export default defineSchema({
     status: v.union(
       v.literal("check-in"),
       v.literal("inspecting"),
+      v.literal("diagnosis"),
       v.literal("awaiting-approval"),
       v.literal("in-progress"),
       v.literal("waiting-parts"),
+      v.literal("quality-check"),
       v.literal("complete"),
       v.literal("invoiced"),
       v.literal("cancelled")
@@ -249,6 +272,11 @@ export default defineSchema({
       v.literal("urgent")
     ),
     services: v.array(v.string()),
+    department: v.optional(v.union(v.literal("mechanical"), v.literal("body"), v.literal("paint"))),
+    bayId: v.optional(v.id("bays")),
+    waitingForParts: v.optional(v.boolean()),
+    estimatedMinutes: v.optional(v.number()),
+    actualMinutes: v.optional(v.number()),
     customerComplaint: v.optional(v.string()),
     diagnosis: v.optional(v.string()),
     workPerformed: v.optional(v.string()),
