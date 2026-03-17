@@ -275,6 +275,8 @@ export default defineSchema({
     department: v.optional(v.union(v.literal("mechanical"), v.literal("body"), v.literal("paint"))),
     bayId: v.optional(v.id("bays")),
     waitingForParts: v.optional(v.boolean()),
+    partsRequestedAt: v.optional(v.number()),
+    partsReceivedAt: v.optional(v.number()),
     estimatedMinutes: v.optional(v.number()),
     actualMinutes: v.optional(v.number()),
     customerComplaint: v.optional(v.string()),

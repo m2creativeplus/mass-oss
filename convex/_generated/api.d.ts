@@ -11,6 +11,7 @@
 import type * as aiContent from "../aiContent.js";
 import type * as cms from "../cms.js";
 import type * as directives from "../directives.js";
+import type * as engines from "../engines.js";
 import type * as functions from "../functions.js";
 import type * as helpers from "../helpers.js";
 import type * as ingestion from "../ingestion.js";
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   aiContent: typeof aiContent;
   cms: typeof cms;
   directives: typeof directives;
+  engines: typeof engines;
   functions: typeof functions;
   helpers: typeof helpers;
   ingestion: typeof ingestion;

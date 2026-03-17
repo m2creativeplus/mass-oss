@@ -33,6 +33,7 @@ import {
   BookOpen,
   CarFront,
   Network,
+  Activity,
 } from "lucide-react"
 import { useConvexAuth } from "@/components/auth/convex-auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -47,6 +48,7 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "staff", "technician", "customer"] },
+  { id: "workshop-board", label: "Workshop Board", icon: Activity, roles: ["admin", "staff", "technician"] },
   { id: "work-orders", label: "Work Orders", icon: Wrench, roles: ["admin", "staff", "technician"] },
   { id: "customers", label: "Customers", icon: Users, roles: ["admin", "staff"] },
   { id: "vehicles", label: "Vehicles", icon: Car, roles: ["admin", "staff", "technician", "customer"] },

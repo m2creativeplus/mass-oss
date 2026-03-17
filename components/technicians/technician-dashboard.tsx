@@ -21,11 +21,13 @@ interface Technician {
   name: string
   role: string
   phone: string
-  status: "available" | "working" | "break" | "offline"
+  status: "available" | "working" | "break" | "offline" | "diagnosing" | "repairing" | "waiting_parts" | "quality_check"
   completedToday: number
   efficiency: number
   rating: number
   specialties: string[]
+  currentLoad: number
+  maxCapacity: number
 }
 
 // Removed mockTechnicians
@@ -43,11 +45,13 @@ export function TechnicianDashboard({ orgId = "mass-hargeisa" }: { orgId?: strin
       name: `${user.firstName} ${user.lastName}`,
       role: "Mechanic",
       phone: user.phone || "N/A",
-      status: (user as any).status ? ((user as any).status as Technician["status"]) : "available",
-      completedToday: Math.floor(Math.random() * 5), // Mock for now until jobs connected
-      efficiency: 80 + Math.floor(Math.random() * 20), // Mock for now
-      rating: 4 + Math.random(), // Mock for now
-      specialties: ["General Maintenance"] // Mock for now
+      status: (user as any).status || "available",
+      completedToday: (user as any).completedToday || 0,
+      efficiency: user.efficiency || 85,
+      rating: 4.5,
+      specialties: user.specialties || ["Mechanical"],
+      currentLoad: user.currentLoad || 0,
+      maxCapacity: user.maxCapacity || 3
     }))
 
   const filteredTechnicians = techniciansData.filter(tech =>
@@ -58,13 +62,20 @@ export function TechnicianDashboard({ orgId = "mass-hargeisa" }: { orgId?: strin
   const getStatusBadge = (status: Technician["status"]) => {
     switch (status) {
       case "available":
-        return <Badge className="bg-green-500 hover:bg-green-600">Available</Badge>
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Available</Badge>
       case "working":
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Working</Badge>
+      case "repairing":
+        return <Badge className="bg-blue-600 hover:bg-blue-700 animate-pulse">Repairing</Badge>
+      case "diagnosing":
+        return <Badge className="bg-indigo-500 hover:bg-indigo-600">Diagnosing</Badge>
+      case "waiting_parts":
+        return <Badge className="bg-rose-500 hover:bg-rose-600">Waiting Parts</Badge>
       case "break":
-        return <Badge className="bg-amber-500 hover:bg-amber-600">On Break</Badge>
+        return <Badge className="bg-amber-400 hover:bg-amber-500">On Break</Badge>
       case "offline":
         return <Badge className="bg-slate-400 hover:bg-slate-500">Offline</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
     }
   }
 
@@ -114,10 +125,8 @@ export function TechnicianDashboard({ orgId = "mass-hargeisa" }: { orgId?: strin
             <tr>
               <th className="px-6 py-4 font-bold">Avatar</th>
               <th className="px-6 py-4 font-bold">Name</th>
-              <th className="px-6 py-4 font-bold">Role</th>
-              <th className="px-6 py-4 font-bold">Phone</th>
-              <th className="px-6 py-4 font-bold">Jobs Today</th>
-              <th className="px-6 py-4 font-bold">Efficiency</th>
+              <th className="px-6 py-4 font-bold">Current Load</th>
+              <th className="px-6 py-4 font-bold">Utilization</th>
               <th className="px-6 py-4 font-bold">Rating</th>
               <th className="px-6 py-4 font-bold">Status</th>
               <th className="px-6 py-4 font-bold text-center">Action</th>
@@ -143,36 +152,29 @@ export function TechnicianDashboard({ orgId = "mass-hargeisa" }: { orgId?: strin
                   </div>
                 </td>
                 
-                {/* Role */}
-                <td className="px-6 py-3 text-slate-600">
-                  {tech.role}
-                </td>
-                
-                {/* Phone */}
-                <td className="px-6 py-3">
-                  <div className="flex items-center gap-1 text-xs text-slate-600">
-                    <Phone className="h-3 w-3" />
-                    {tech.phone}
-                  </div>
-                </td>
-                
-                {/* Jobs Today */}
+                {/* Load */}
                 <td className="px-6 py-3 font-semibold text-center">
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold">
-                    {tech.completedToday}
+                  <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold ${
+                    tech.currentLoad >= tech.maxCapacity ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {tech.currentLoad}/{tech.maxCapacity}
                   </span>
                 </td>
                 
-                {/* Efficiency */}
+                {/* Utilization */}
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-2">
                     <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-emerald-500 rounded-full" 
-                        style={{ width: `${tech.efficiency}%` }}
+                        className={`h-full rounded-full ${
+                          (tech.currentLoad / (tech.maxCapacity || 1)) > 0.8 ? 'bg-orange-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${(tech.currentLoad / (tech.maxCapacity || 1)) * 100}%` }}
                       ></div>
                     </div>
-                    <span className="text-xs font-medium">{tech.efficiency}%</span>
+                    <span className="text-xs font-medium">
+                      {Math.round((tech.currentLoad / (tech.maxCapacity || 1)) * 100)}%
+                    </span>
                   </div>
                 </td>
                 
