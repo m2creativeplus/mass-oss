@@ -73,7 +73,6 @@ export function CreateInspection({ onCancel, onStart }: CreateInspectionProps) {
         orgId,
         customerId: selectedCustomerId as any,
         vehicleId: selectedVehicleId as any,
-        status: "in-progress",
         items: DEFAULT_INSPECTION_ITEMS as any
       })
       toast.success("Inspection started")

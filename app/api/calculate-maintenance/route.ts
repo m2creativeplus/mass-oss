@@ -6,11 +6,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// Pricing data for Somaliland market (USD)
+// Pricing data for Somaliland market (USD) - Configurable via Env
 const LABOR_RATES = {
-  budget: 15,
-  standard: 25,
-  premium: 40,
+  budget: Number(process.env.LABOR_RATE_BUDGET) || 15,
+  standard: Number(process.env.LABOR_RATE_STANDARD) || 25,
+  premium: Number(process.env.LABOR_RATE_PREMIUM) || 40,
 };
 
 const REPAIR_COSTS: Record<string, { parts: { budget: number; standard: number; premium: number }; hours: number }> = {

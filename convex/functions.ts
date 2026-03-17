@@ -1719,7 +1719,7 @@ export const updateInspectionTemplate = mutation({
 
 // ============ CANNED JOBS (Pre-Built Service Packages) ============
 export const getCannedJobs = query({
-  args: {},
+  args: { orgId: v.optional(v.string()) },
   handler: async (ctx) => {
     return await ctx.db
       .query("cannedJobs")

@@ -20,7 +20,7 @@ export default function DashboardPage() {
         <Dashboard orgId={organization._id} />
       </div>
       <div className="xl:col-span-1">
-        <DirectivesDashboard directives={directives || []} />
+        <DirectivesDashboard directives={(directives || []).map((d: any) => ({ ...d, id: d._id }))} />
       </div>
     </div>
   )

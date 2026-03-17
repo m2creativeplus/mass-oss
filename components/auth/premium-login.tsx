@@ -1,5 +1,7 @@
 "use client"
 
+import Image from "next/image"
+
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -93,9 +95,7 @@ export function PremiumLogin({ onLogin, onDemoLogin, isLoading = false }: Premiu
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-              <Car className="h-7 w-7 text-white" />
-            </div>
+            <Image src="/mass-os-logo.png" alt="MASS OS" width={52} height={52} className="rounded-xl shadow-lg shadow-orange-500/30" />
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">MASS Workshop</h1>
               <p className="text-sm text-slate-400">Vehicle Management System</p>
@@ -155,9 +155,7 @@ export function PremiumLogin({ onLogin, onDemoLogin, isLoading = false }: Premiu
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
-              <Car className="h-6 w-6 text-white" />
-            </div>
+            <Image src="/mass-os-logo.png" alt="MASS OS" width={44} height={44} className="rounded-xl" />
             <h1 className="text-xl font-bold">MASS Workshop</h1>
           </div>
 

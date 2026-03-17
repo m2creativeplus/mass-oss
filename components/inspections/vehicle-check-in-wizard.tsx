@@ -173,33 +173,23 @@ export default function VehicleCheckInWizard({
       const workOrderResult = await createWorkOrder({
         vehicleId: wizardData.vehicleId as any,
         customerId: wizardData.customerId as any,
-        status: "check-in",
         priority: "normal",
         services: ["Vehicle Check-In"],
         customerComplaint: wizardData.defectNotes,
-        mileageIn: wizardData.mileageIn,
         orgId,
       });
 
       // Create inspection record
       if (workOrderResult) {
         await createInspection({
-          workOrderId: workOrderResult,
           vehicleId: wizardData.vehicleId as any,
           customerId: wizardData.customerId as any,
-          status: "completed",
-          mileage: wizardData.mileageIn,
-          fuelLevel: `${wizardData.fuelLevel}%`,
-          overallCondition: wizardData.overallCondition,
-          safetyRating: wizardData.overallCondition === "poor" ? "unsafe" : 
-                        wizardData.overallCondition === "fair" ? "attention-needed" : "safe",
           items: wizardData.partsChecklist.map((item) => ({
             name: item.name,
             category: item.category,
             status: item.status,
             notes: item.notes,
-            photoUrls: [],
-          })),
+          })) as any,
           orgId,
         });
       }

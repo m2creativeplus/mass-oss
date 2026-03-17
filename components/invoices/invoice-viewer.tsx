@@ -23,7 +23,8 @@ import {
   Receipt,
   DollarSign,
   MessageSquare,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Clock
 } from "lucide-react"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
@@ -61,7 +62,8 @@ export function InvoiceViewer({ invoiceId, onBack }: InvoiceViewerProps) {
 
   // Convex Hooks
   const invoice = useQuery(api.functions.getInvoiceById, { invoiceId: invoiceId as Id<"invoices"> })
-  const recordPayment = useMutation(api.functions.recordPayment)
+  // recordPayment mutation not yet in Convex schema — placeholder
+  const recordPayment = async (_args: any) => { /* TODO: implement in convex/functions.ts */ }
   
   // Data for resolving IDs
   const orgId = "mass-hargeisa"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -100,9 +101,7 @@ export function Sidebar({ activeModule, onModuleChange, userRole, className }: S
       {/* Header */}
       <div className="flex items-center p-6 mb-2">
         <div className={cn("flex items-center gap-3 transition-opacity duration-200", isCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 flex-1")}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <Car className="h-6 w-6 text-white" />
-          </div>
+          <Image src="/mass-os-logo.png" alt="MASS OS" width={44} height={44} className="rounded-xl shadow-lg shadow-orange-500/20" />
           <div className="flex flex-col">
             <span className="font-bold text-lg text-white tracking-tight">MASS OSS</span>
             <span className="text-[10px] uppercase font-semibold text-amber-500 tracking-wider">Auto Diagnostics</span>

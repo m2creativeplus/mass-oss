@@ -343,21 +343,21 @@ export function Customers({ orgId }: { orgId: string }) {
                     <Button 
                       size="icon" 
                       className="h-8 w-8 bg-[#f39c12] hover:bg-[#d58512] text-white rounded shadow-sm"
-                      onClick={() => handleView(customer)}
+                      onClick={() => handleView(customer as any)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                     <Button 
                       size="icon" 
                       className="h-8 w-8 bg-[#3c8dbc] hover:bg-[#367fa9] text-white rounded shadow-sm"
-                      onClick={() => handleEdit(customer)}
+                      onClick={() => handleEdit(customer as any)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button 
                       size="icon" 
                       className="h-8 w-8 bg-[#dd4b39] hover:bg-[#d73925] text-white rounded shadow-sm"
-                      onClick={() => handleDelete(customer)}
+                      onClick={() => handleDelete(customer as any)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

@@ -53,7 +53,7 @@ interface WorkOrder {
   checkinDate: string
   services: string[]
   assignedTech: string
-  priority: "low" | "normal" | "high" | "urgent"
+  priority: string
   estimate?: number
 }
 
@@ -125,12 +125,19 @@ const availableServices = [
 const technicians = ["Mohamed Ali", "Abdi Kareem", "Hassan Yusuf", "Ibrahim Ahmed"]
 
 // Empty form state
-const emptyForm = {
+const emptyForm: {
+  customer: { name: string; phone: string };
+  vehicle: { make: string; model: string; year: number; plate: string };
+  services: string[];
+  assignedTech: string;
+  priority: "normal" | "high" | "urgent";
+  estimate: number;
+} = {
   customer: { name: "", phone: "" },
   vehicle: { make: "", model: "", year: new Date().getFullYear(), plate: "" },
   services: [] as string[],
   assignedTech: "",
-  priority: "normal" as const,
+  priority: "normal",
   estimate: 0,
 }
 
@@ -216,7 +223,7 @@ export function WorkOrdersKanban({ orgId = "demo" }: WorkOrdersKanbanProps) {
       vehicle: { ...order.vehicle },
       services: [...order.services],
       assignedTech: order.assignedTech,
-      priority: order.priority,
+      priority: (order.priority || "normal") as "normal" | "high" | "urgent",
       estimate: order.estimate || 0,
     })
     setSelectedServices(order.services)
@@ -426,7 +433,7 @@ export function WorkOrdersKanban({ orgId = "demo" }: WorkOrdersKanbanProps) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1 max-w-[200px]">
-                    {order.services.slice(0, 2).map((service, i) => (
+                    {order.services.slice(0, 2).map((service: string, i: number) => (
                       <span key={i} className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
                         {service}
                       </span>

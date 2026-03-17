@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     // Dynamic import of Stripe to avoid build errors when not configured
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2024-12-18.acacia",
+      apiVersion: "2025-12-15.clover",
     });
 
     // Create a payment intent
@@ -81,7 +81,7 @@ export async function PUT(request: NextRequest) {
 
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2024-12-18.acacia",
+      apiVersion: "2025-12-15.clover",
     });
 
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);

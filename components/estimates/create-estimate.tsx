@@ -26,6 +26,7 @@ import {
   Car,
   AlertCircle
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"

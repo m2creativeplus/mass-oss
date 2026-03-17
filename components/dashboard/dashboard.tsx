@@ -66,7 +66,7 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 24 },
+    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
   },
 }
 
@@ -77,7 +77,7 @@ const kpiVariants = {
     y: 0,
     scale: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 260,
       damping: 20,
       delay: i * 0.1,
@@ -86,7 +86,7 @@ const kpiVariants = {
   hover: {
     y: -4,
     scale: 1.02,
-    transition: { type: "spring", stiffness: 400, damping: 15 },
+    transition: { type: "spring" as const, stiffness: 400, damping: 15 },
   },
 }
 

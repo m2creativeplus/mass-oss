@@ -67,9 +67,9 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   const isDemoUser = Boolean(user?.id?.startsWith("demo-")) || isLocalStorageDemo
   
-  // Query convex for both real and demo users to ensure full functionality
-  // Demo users will still be routed to "mass-hargeisa" orgId in components
-  const shouldQueryConvex = Boolean(!authLoading && user)
+  // Query convex for both real and demo users only if it's NOT a demo user
+  // Demo users will be handled purely in-memory via DEMO_ORGANIZATION to avoid v.id() validation errors in Convex
+  const shouldQueryConvex = Boolean(!authLoading && user && !isDemoUser)
   
   const userOrgs = useQuery(
     api.functions.getUserOrgs, 

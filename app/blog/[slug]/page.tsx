@@ -8,10 +8,11 @@ import remarkGfm from "remark-gfm";
 
 export const revalidate = 60;
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://artful-jaguar-416.convex.cloud");
   try {
-    const post = await convex.query(api.cms.getBlogPostBySlug, { slug: params.slug });
+    const post = await convex.query(api.cms.getBlogPostBySlug, { slug }) as any;
     
     if (!post) {
       return { title: 'Post Not Found' };
@@ -33,12 +34,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://artful-jaguar-416.convex.cloud");
   let post = null;
   
   try {
-    post = await convex.query(api.cms.getBlogPostBySlug, { slug: params.slug });
+    post = await convex.query(api.cms.getBlogPostBySlug, { slug }) as any;
   } catch (error) {
     console.error("Post fetch error during build:", error);
   }

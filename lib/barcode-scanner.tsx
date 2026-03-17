@@ -81,9 +81,7 @@ export function useBarcodeDScanner() {
       if (!videoRef.current || !scanning) return
 
       try {
-        // @ts-expect-error BarcodeDetector is not in TypeScript types yet
         if (!detector && 'BarcodeDetector' in window) {
-          // @ts-expect-error BarcodeDetector constructor
           detector = new BarcodeDetector({
             formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e']
           })

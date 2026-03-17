@@ -11,6 +11,6 @@ export default function PosPage() {
   if (!organization) return null
 
   return (
-    <PartSellsModule orgId={organization._id} />
+    <PartSellsModule />
   )
 }

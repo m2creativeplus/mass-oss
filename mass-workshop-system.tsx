@@ -61,60 +61,59 @@ function WorkshopSystemContent() {
   }
 
   const renderModule = () => {
-    // Props to pass to all modules
-    const commonProps = { orgId: organization._id }
+    const orgId = organization._id
     
     switch (activeModule) {
       case "dashboard":
-        return <Dashboard {...commonProps} />
+        return <Dashboard orgId={orgId} />
       case "work-orders":
-        return <WorkOrdersKanban {...commonProps} />
+        return <WorkOrdersKanban />
       case "customers":
-        return <Customers {...commonProps} />
+        return <Customers orgId={orgId} />
       case "vehicles":
-        return <Vehicles {...commonProps} />
+        return <Vehicles orgId={orgId} />
       case "appointments":
-        return <Appointments {...commonProps} />
+        return <Appointments />
       case "car-request":
-        return <CarRequestModule {...commonProps} />
+        return <CarRequestModule />
       case "inventory":
-        return <InventoryManagement {...commonProps} />
+        return <InventoryManagement />
       case "technicians":
-        return <TechnicianDashboard {...commonProps} />
+        return <TechnicianDashboard />
       case "suppliers":
-        return <SuppliersModule {...commonProps} />
+        return <SuppliersModule />
       case "network":
-        return <NetworkModule {...commonProps} />
+        return <NetworkModule />
       case "inspections":
-        return <EnhancedInspectionChecklist {...commonProps} />
+        return <EnhancedInspectionChecklist id="" onBack={() => setActiveModule("dashboard")} onComplete={() => setActiveModule("dashboard")} />
       case "estimates":
-        return <CreateEstimate {...commonProps} />
+        return <CreateEstimate onBack={() => setActiveModule("dashboard")} />
       case "reports":
-        return <ReportsAnalytics {...commonProps} />
+        return <ReportsAnalytics />
       case "ai-tools":
-        return <AITools {...commonProps} />
+        return <AITools />
       case "pos":
-        return <PartSellsModule {...commonProps} />
+        return <PartSellsModule />
       case "catalog":
-        return <CatalogModule {...commonProps} />
+        return <CatalogModule />
       case "delivery":
-        return <DeliveryModule {...commonProps} />
+        return <DeliveryModule />
       case "reminders":
-        return <RemindersModule {...commonProps} />
+        return <RemindersModule />
       case "diagnostics":
-        return <AutoDiagnosticsModule {...commonProps} />
+        return <AutoDiagnosticsModule />
       case "contact":
-        return <ContactModule {...commonProps} />
+        return <ContactModule />
       case "settings":
-        return user.role === "admin" ? <SettingsModule {...commonProps} /> : <Dashboard {...commonProps} />
+        return user.role === "admin" ? <SettingsModule /> : <Dashboard orgId={orgId} />
       case "declined-jobs":
-        return <DeclinedJobsTracker {...commonProps} />
+        return <DeclinedJobsTracker />
       case "canned-jobs":
-        return <CannedJobsLibrary {...commonProps} />
+        return <CannedJobsLibrary />
       case "inspection-templates":
-        return <InspectionTemplateBuilder {...commonProps} />
+        return <InspectionTemplateBuilder />
       default:
-        return <Dashboard {...commonProps} />
+        return <Dashboard orgId={orgId} />
     }
   }
 

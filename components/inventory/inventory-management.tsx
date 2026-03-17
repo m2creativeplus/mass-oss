@@ -63,7 +63,7 @@ const emptyPart = {
 const conditionOptions = ["New", "Used", "Refurbished"]
 const warrantyOptions = ["None", "3 Months", "6 Months", "1 Year", "2 Years", "Lifetime"]
 
-export function InventoryManagement() {
+export function InventoryManagement({ orgId }: { orgId?: string } = {}) {
   const [searchQuery, setSearchQuery] = useState("")
   const [inventory, setInventory] = useState(mockInventory)
   

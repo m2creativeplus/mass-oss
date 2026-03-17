@@ -40,7 +40,7 @@ export function DviReview({ id, onBack }: DviReviewProps) {
     try {
        await updateStatus({
           inspectionId: id as Id<"inspections">,
-          status: "shared"
+          status: "completed"
        })
        toast.success("Inspection report shared with customer!")
     } catch (error) {
