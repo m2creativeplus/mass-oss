@@ -167,6 +167,85 @@ export const advancedKPIs = query({
 });
 
 // ==========================================
+// LIFECYCLE ENGINE — complete job flow
+// ==========================================
+
+/** In Progress → Quality Check */
+export const moveToQualityCheck = mutation({
+  args: { workOrderId: v.id("workOrders") },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.workOrderId);
+    if (!job) throw new Error("Job not found");
+    await ctx.db.patch(args.workOrderId, { status: "quality-check" });
+    return { success: true };
+  },
+});
+
+/** Quality Check → Complete — sets completedAt + calculates actualMinutes */
+export const completeJob = mutation({
+  args: {
+    workOrderId: v.id("workOrders"),
+    totalAmount: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.workOrderId);
+    if (!job) throw new Error("Job not found");
+
+    const now = new Date();
+    const completedAt = now.toISOString();
+
+    // Calculate actual repair time from startedAt
+    let actualMinutes: number | undefined;
+    if (job.startedAt) {
+      const startMs = new Date(job.startedAt).getTime();
+      actualMinutes = Math.round((now.getTime() - startMs) / 60000);
+    }
+
+    await ctx.db.patch(args.workOrderId, {
+      status: "complete",
+      completedAt,
+      actualMinutes,
+      totalAmount: args.totalAmount ?? job.totalAmount ?? 0,
+    });
+
+    // Free the bay
+    if (job.bayId) {
+      await ctx.db.patch(job.bayId, {
+        status: "free",
+        technicianId: undefined,
+        jobId: undefined,
+      });
+    }
+
+    // Release technician capacity
+    if (job.technicianId) {
+      const tech = await ctx.db.get(job.technicianId);
+      if (tech) {
+        await ctx.db.patch(tech._id, {
+          currentLoad: Math.max(0, (tech.currentLoad || 1) - 1),
+        });
+      }
+    }
+
+    return { success: true, completedAt, actualMinutes };
+  },
+});
+
+/** Awaiting Approval → In Progress */
+export const approveAndStart = mutation({
+  args: { workOrderId: v.id("workOrders") },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.workOrderId);
+    if (!job) throw new Error("Job not found");
+    await ctx.db.patch(args.workOrderId, {
+      status: "in-progress",
+      startedAt: new Date().toISOString(),
+    });
+    return { success: true };
+  },
+});
+
+// ==========================================
 // 4. PREDICTIVE ENGINE
 // ==========================================
 export const predictTime = query({

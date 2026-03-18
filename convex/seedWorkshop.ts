@@ -45,11 +45,13 @@ export const seedWorkshopDemo = mutation({
     if (customers.length === 0 || vehicles.length === 0) {
       // Need at least one customer + vehicle
       const custId = await ctx.db.insert("customers", {
+        customerNumber: "CUST-demo",
         firstName: "Ali",
         lastName: "Mohamed",
         email: "ali@example.com",
         phone: "0634567890",
         address: "Hargeisa Main Road",
+        isActive: true,
         orgId: "mass-hargeisa",
       });
       
@@ -63,6 +65,7 @@ export const seedWorkshopDemo = mutation({
         color: "White",
         engineType: "V8 4.5L Diesel",
         transmission: "automatic",
+        mileage: 85000,
         status: "active",
         orgId: "mass-hargeisa",
       });

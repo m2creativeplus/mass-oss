@@ -61,6 +61,29 @@ export default defineSchema({
     .index("by_org", ["orgId"])
     .index("by_user_org", ["userId", "orgId"]),
 
+  // ============ 31. SAIP INTELLIGENCE LAYER ============
+  marketPrices: defineTable({
+    make: v.string(),
+    model: v.string(),
+    year: v.number(),
+    beForwardPriceUSD: v.number(),
+    hargeisaStreetPriceUSD: v.number(),
+    shippingCostUSD: v.number(),
+    customsDutyUSD: v.number(),
+    demandLevel: v.union(v.literal("Low"), v.literal("Medium"), v.literal("High")),
+    lastUpdated: v.string(),
+    orgId: v.string(),
+  }).index("by_model", ["make", "model"]),
+
+  vinRegistry: defineTable({
+    vin: v.string(),
+    status: v.union(v.literal("clean"), v.literal("stolen"), v.literal("flagged"), v.literal("accident")),
+    reportedBy: v.string(),
+    reportDate: v.string(),
+    notes: v.optional(v.string()),
+    orgId: v.string(),
+  }).index("by_vin", ["vin"]),
+
   // ============ 2. CUSTOMERS (CRM) ============
   customers: defineTable({
     customerNumber: v.string(),

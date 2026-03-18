@@ -24,7 +24,7 @@ import {
 import { processPayment } from "@/lib/payments"
 import { generateInvoicePDF, downloadInvoice } from "@/lib/pdf-invoice"
 import { AuditLog } from "@/lib/activity-logs"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 
 // Remove hardcoded inventory data integration
@@ -95,33 +95,43 @@ export function PartSellsModule({ orgId = "mass-hargeisa" }: { orgId?: string })
   const tax = subtotal * 0.05 // 5% tax
   const total = subtotal + tax
 
+  const processCheckoutMutation = useMutation(api.functions.processCheckout)
+  
   const processSale = async () => {
     setProcessing(true)
     setPaymentResult(null)
     
-    const invoiceId = `INV-${Date.now().toString(36).toUpperCase()}`
-    
     try {
-      // Process payment via API
+      // Process payment via API (can be mock or real stripe/zaad integration)
       const result = await processPayment(paymentMethod, {
         amount: total,
         currency: 'USD',
         customerPhone: customerPhone || '+252-63-0000000',
         description: `MASS Workshop - ${cart.length} items`,
-        invoiceId
+        invoiceId: 'pending' // generated sequentially by Convex
       })
       
-      setPaymentResult({ transactionId: result.transactionId, message: result.message })
+      // Perform ACTUAL Database Checkout
+      const checkoutResult = await processCheckoutMutation({
+        orgId,
+        items: cart.map(i => ({ id: i.id as any, name: i.name, price: i.price, quantity: i.quantity })),
+        subtotal,
+        taxAmount: tax,
+        totalAmount: total,
+        paymentMethod: paymentMethod as any,
+        customerPhone,
+      })
+      
+      setPaymentResult({ transactionId: result.transactionId, message: "Sale complete and stock updated!" })
+      setLastInvoiceId(checkoutResult.saleNumber)
       
       // Log the activity
-      AuditLog.processPayment('system', 'POS User', 'staff', invoiceId, total, paymentMethod)
-      
-      setLastInvoiceId(invoiceId)
+      AuditLog.processPayment('system', 'POS User', 'staff', checkoutResult.saleNumber, total, paymentMethod)
       setSaleComplete(true)
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment error:', error)
-      setPaymentResult({ transactionId: '', message: 'Payment failed. Please try again.' })
+      setPaymentResult({ transactionId: '', message: error?.message || 'Payment failed. Please try again.' })
     } finally {
       setProcessing(false)
     }

@@ -91,40 +91,9 @@ const kpiVariants = {
 }
 
 // ═══════════════════════════════════════════════
-// CHART DATA
+// DYNAMIC CHART DATA HOOKED TO BACKEND
 // ═══════════════════════════════════════════════
-const revenueData = [
-  { month: "Jan", revenue: 12400, expenses: 8200 },
-  { month: "Feb", revenue: 14800, expenses: 9100 },
-  { month: "Mar", revenue: 13200, expenses: 8800 },
-  { month: "Apr", revenue: 16500, expenses: 10200 },
-  { month: "May", revenue: 18200, expenses: 11400 },
-  { month: "Jun", revenue: 15900, expenses: 9800 },
-  { month: "Jul", revenue: 17400, expenses: 10600 },
-  { month: "Aug", revenue: 19100, expenses: 11800 },
-  { month: "Sep", revenue: 16800, expenses: 10100 },
-  { month: "Oct", revenue: 20200, expenses: 12400 },
-  { month: "Nov", revenue: 18600, expenses: 11200 },
-  { month: "Dec", revenue: 22100, expenses: 13500 },
-]
-
-const workOrderStatusData = [
-  { name: "In Progress", value: 8, color: "#3B82F6" },
-  { name: "Awaiting Parts", value: 5, color: "#F59E0B" },
-  { name: "Completed", value: 24, color: "#10B981" },
-  { name: "Check-In", value: 3, color: "#8B5CF6" },
-  { name: "Invoiced", value: 12, color: "#06B6D4" },
-]
-
-const weeklyRepairs = [
-  { day: "Mon", repairs: 8 },
-  { day: "Tue", repairs: 12 },
-  { day: "Wed", repairs: 10 },
-  { day: "Thu", repairs: 14 },
-  { day: "Fri", repairs: 9 },
-  { day: "Sat", repairs: 6 },
-  { day: "Sun", repairs: 2 },
-]
+// (Fetching moved into Dashboard component below)
 
 // ═══════════════════════════════════════════════
 // KPI CARD COMPONENT
@@ -209,6 +178,36 @@ const recentActivity = [
 import { ClipboardCheck } from "lucide-react"
 
 // ═══════════════════════════════════════════════
+// CUSTOM TOOLTIP FOR CHARTS
+// ═══════════════════════════════════════════════
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 text-sm">
+        <p className="font-semibold mb-1">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full" style={{ background: entry.color }} />
+            {entry.name}: ${entry.value.toLocaleString()}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════
 // MAIN DASHBOARD COMPONENT
 // ═══════════════════════════════════════════════
 export function Dashboard({ orgId }: { orgId?: string }) {
@@ -222,6 +221,9 @@ export function Dashboard({ orgId }: { orgId?: string }) {
   const vehicles = useQuery(api.functions.getVehicles, { orgId: org })
   const workOrders = useQuery(api.functions.getWorkOrders, { orgId: org })
   const inventory = useQuery(api.functions.getInventory, { orgId: org })
+  
+  // NEW EXPERIMENTAL AGGREGATION QUERY
+  const chartStats = useQuery(api.functions.getChartStats, { orgId: org })
 
   // Computed stats
   const totalCustomers = customers?.length ?? 0
@@ -232,33 +234,10 @@ export function Dashboard({ orgId }: { orgId?: string }) {
   const totalParts = inventory?.reduce((sum: number, item) => sum + ((item.stockQuantity as number) ?? 0), 0) ?? 0
   const lowStockParts = inventory?.filter((item) => ((item.stockQuantity as number) ?? 0) <= ((item.reorderPoint as number) ?? 0)).length ?? 0
 
-  // Custom tooltip for charts
-  interface TooltipProps {
-    active?: boolean
-    payload?: Array<{
-      name: string
-      value: number
-      color: string
-    }>
-    label?: string
-  }
-
-  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 text-sm">
-          <p className="font-semibold mb-1">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full" style={{ background: entry.color }} />
-              {entry.name}: ${entry.value.toLocaleString()}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
+  // Chart Data Fallbacks while loading
+  const revenueData: any[] = chartStats?.revenueData || []
+  const workOrderStatusData: any[] = chartStats?.workOrderStatusData || []
+  const weeklyRepairs: any[] = chartStats?.weeklyRepairs || []
 
   return (
     <motion.div
@@ -457,7 +436,7 @@ export function Dashboard({ orgId }: { orgId?: string }) {
                       endAngle={-270}
                       stroke="none"
                     >
-                      {workOrderStatusData.map((entry, index) => (
+                      {workOrderStatusData.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>

@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const seedDemoUsers = mutation({
@@ -88,6 +88,7 @@ export const seedDemoUsers = mutation({
             console.error("Could not create org, owner not found");
         }
     } else {
+         // handle case where org exists but orgId variable wasn't set (though logic above handles it)
          if (!orgId) orgId = existingOrg?._id;
     }
     
