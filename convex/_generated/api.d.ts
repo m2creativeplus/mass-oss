@@ -10,9 +10,12 @@
 
 import type * as aiContent from "../aiContent.js";
 import type * as appointments from "../appointments.js";
+import type * as auditLog from "../auditLog.js";
+import type * as auth from "../auth.js";
 import type * as automotivePoisstakeholderNetwork from "../automotivePoisstakeholderNetwork.js";
 import type * as cannedJobsprebuiltServicePackages from "../cannedJobsprebuiltServicePackages.js";
 import type * as cms from "../cms.js";
+import type * as cookieConsent from "../cookieConsent.js";
 import type * as customerApprovalsdigitalSignatures from "../customerApprovalsdigitalSignatures.js";
 import type * as customers from "../customers.js";
 import type * as dashboardStats from "../dashboardStats.js";
@@ -36,6 +39,7 @@ import type * as massPartnersbbNetwork from "../massPartnersbbNetwork.js";
 import type * as operationsschema from "../operationsschema.js";
 import type * as partRequests from "../partRequests.js";
 import type * as pos from "../pos.js";
+import type * as rbac from "../rbac.js";
 import type * as reminders from "../reminders.js";
 import type * as salesPos from "../salesPos.js";
 import type * as seed from "../seed.js";
@@ -61,9 +65,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   aiContent: typeof aiContent;
   appointments: typeof appointments;
+  auditLog: typeof auditLog;
+  auth: typeof auth;
   automotivePoisstakeholderNetwork: typeof automotivePoisstakeholderNetwork;
   cannedJobsprebuiltServicePackages: typeof cannedJobsprebuiltServicePackages;
   cms: typeof cms;
+  cookieConsent: typeof cookieConsent;
   customerApprovalsdigitalSignatures: typeof customerApprovalsdigitalSignatures;
   customers: typeof customers;
   dashboardStats: typeof dashboardStats;
@@ -87,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   operationsschema: typeof operationsschema;
   partRequests: typeof partRequests;
   pos: typeof pos;
+  rbac: typeof rbac;
   reminders: typeof reminders;
   salesPos: typeof salesPos;
   seed: typeof seed;

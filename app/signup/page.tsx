@@ -3,7 +3,7 @@
 import { Suspense } from "react"
 import { ConvexLoginForm } from "@/components/auth/convex-login-form"
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="login-page">
       <div className="login-glow" />

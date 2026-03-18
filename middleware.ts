@@ -2,53 +2,87 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * MASS VWMS Middleware
- * Handles route protection and role-based access control.
- * Authorized by M2 Autopilot Protocol 2026.
+ * MASS OSS Middleware
+ * Route protection via HTTP-only session cookie validation.
+ * Security headers applied to all responses.
  */
+
+const SESSION_COOKIE = 'mass_session';
+
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/signup',
+  '/blog',
+  '/insights',
+  '/features',
+  '/solutions',
+  '/pricing',
+  '/contact',
+  '/privacy',
+  '/terms',
+  '/verify',
+];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Skip middleware for static assets, public files, and core public routes
+  // 1. Skip middleware for static assets and API routes
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/') ||
-    pathname.includes('.') ||
-    ['/', '/login', '/blog', '/insights', '/features', '/solutions', '/pricing', '/contact', '/privacy', '/terms'].some(path => pathname === path || pathname.startsWith(path + '/'))
+    pathname.includes('.')
   ) {
     return NextResponse.next();
   }
 
-  // 2. Session check (Hardened Multi-Token Verification)
-  // We check for any valid auth token across our hybrid stack (Supabase, Clerk, Convex Demo)
-  const authTokens = [
-    'supabase-auth-token',
-    'sb-access-token',
-    '__clerk_db_jwt',
-    'mass_workshop_auth'
-  ];
+  // 2. Check if route is public
+  const isPublic = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + '/')
+  );
 
-  const hasSession = authTokens.some(token => request.cookies.has(token));
+  if (isPublic) {
+    return addSecurityHeaders(NextResponse.next());
+  }
 
-  if (!hasSession) {
-    // Audit Note: Unauthorized access attempt to ${pathname} logged.
+  // 3. Session check — validate mass_session cookie exists
+  const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
+
+  if (!sessionToken) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3. Security Header Injection
-  const response = NextResponse.next();
+  // 4. Token format validation (64-char hex string)
+  if (!/^[a-f0-9]{64}$/.test(sessionToken)) {
+    // Invalid token format — clear it and redirect
+    const loginUrl = new URL('/login', request.url);
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.set(SESSION_COOKIE, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    });
+    return response;
+  }
+
+  return addSecurityHeaders(NextResponse.next());
+}
+
+function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
   return response;
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|login).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

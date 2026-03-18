@@ -1,6 +1,12 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import { hasModuleAccess } from "@/lib/permissions"
+
+// ============================================================
+// MASS OSS - Production Auth Provider
+// Cookie-based sessions via API routes — zero localStorage
+// ============================================================
 
 interface AuthUser {
   id: string
@@ -9,186 +15,126 @@ interface AuthUser {
   firstName: string
   lastName: string
   phone?: string
-  isActive: boolean
+  avatarUrl?: string
+  emailVerified?: boolean
 }
 
 interface AuthContextType {
   user: AuthUser | null
+  orgId: string | null
+  orgName: string | null
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signup: (data: SignupData) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   isLoading: boolean
   hasPermission: (module: string, action: string) => boolean
-  authError: string | null
+  refreshSession: () => Promise<void>
+}
+
+interface SignupData {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  phone?: string
+  workshopName?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Role permissions mapping
-const rolePermissions: Record<string, Record<string, Record<string, boolean>>> = {
-  admin: {
-    dashboard: { read: true, write: true, delete: true, manage: true },
-    customers: { read: true, write: true, delete: true, manage: true },
-    vehicles: { read: true, write: true, delete: true, manage: true },
-    appointments: { read: true, write: true, delete: true, manage: true },
-    technicians: { read: true, write: true, delete: true, manage: true },
-    suppliers: { read: true, write: true, delete: true, manage: true },
-    inspections: { read: true, write: true, delete: true, manage: true },
-    estimates: { read: true, write: true, delete: true, manage: true },
-    inventory: { read: true, write: true, delete: true, manage: true },
-    reports: { read: true, write: true, delete: false, manage: true },
-    "ai-tools": { read: true, write: true, delete: false, manage: true },
-    pos: { read: true, write: true, delete: true, manage: true },
-    delivery: { read: true, write: true, delete: true, manage: true },
-    reminders: { read: true, write: true, delete: true, manage: true },
-    "work-orders": { read: true, write: true, delete: true, manage: true },
-    "vehicle-passport": { read: true, write: true, delete: true, manage: true },
-    "ai-diagnostics": { read: true, write: true, delete: true, manage: true },
-  },
-  staff: {
-    dashboard: { read: true, write: false, delete: false, manage: false },
-    customers: { read: true, write: true, delete: false, manage: false },
-    vehicles: { read: true, write: true, delete: false, manage: false },
-    appointments: { read: true, write: true, delete: false, manage: true },
-    technicians: { read: true, write: false, delete: false, manage: false },
-    suppliers: { read: true, write: true, delete: false, manage: false },
-    inspections: { read: true, write: true, delete: false, manage: false },
-    estimates: { read: true, write: true, delete: false, manage: true },
-    inventory: { read: true, write: true, delete: false, manage: false },
-    reports: { read: true, write: false, delete: false, manage: false },
-    "ai-tools": { read: true, write: true, delete: false, manage: false },
-    pos: { read: true, write: true, delete: false, manage: false },
-    delivery: { read: true, write: true, delete: false, manage: false },
-    reminders: { read: true, write: true, delete: false, manage: false },
-    "work-orders": { read: true, write: true, delete: false, manage: false },
-    "vehicle-passport": { read: true, write: false, delete: false, manage: false },
-    "ai-diagnostics": { read: true, write: true, delete: false, manage: false },
-  },
-  technician: {
-    dashboard: { read: true, write: false, delete: false, manage: false },
-    customers: { read: true, write: false, delete: false, manage: false },
-    vehicles: { read: true, write: true, delete: false, manage: false },
-    appointments: { read: true, write: true, delete: false, manage: false },
-    technicians: { read: true, write: false, delete: false, manage: false },
-    suppliers: { read: true, write: false, delete: false, manage: false },
-    inspections: { read: true, write: true, delete: false, manage: true },
-    estimates: { read: true, write: true, delete: false, manage: false },
-    inventory: { read: true, write: false, delete: false, manage: false },
-    reports: { read: true, write: false, delete: false, manage: false },
-    "ai-tools": { read: true, write: true, delete: false, manage: false },
-    pos: { read: true, write: true, delete: false, manage: false },
-    delivery: { read: true, write: true, delete: false, manage: false },
-    reminders: { read: true, write: false, delete: false, manage: false },
-    "work-orders": { read: true, write: true, delete: false, manage: false },
-    "vehicle-passport": { read: true, write: true, delete: false, manage: false },
-    "ai-diagnostics": { read: true, write: true, delete: false, manage: false },
-  },
-  customer: {
-    dashboard: { read: true, write: false, delete: false, manage: false },
-    vehicles: { read: true, write: false, delete: false, manage: false },
-    appointments: { read: true, write: true, delete: false, manage: false },
-    inspections: { read: true, write: false, delete: false, manage: false },
-    estimates: { read: true, write: false, delete: false, manage: false },
-    "vehicle-passport": { read: true, write: false, delete: false, manage: false },
-  },
-}
-
-// Demo users for local development
-const demoUsers: Record<string, AuthUser> = {
-  "admin@masscar.com": {
-    id: "demo-admin-001",
-    email: "admin@masscar.com",
-    role: "admin",
-    firstName: "Admin",
-    lastName: "User",
-    isActive: true,
-  },
-  "owner@masscar.com": {
-    id: "demo-owner-001",
-    email: "owner@masscar.com",
-    role: "admin",
-    firstName: "Owner / Super Admin",
-    lastName: "Executive",
-    isActive: true,
-  },
-  "staff@masscar.com": {
-    id: "demo-staff-001",
-    email: "staff@masscar.com",
-    role: "staff",
-    firstName: "Staff",
-    lastName: "Member",
-    isActive: true,
-  },
-  "tech@masscar.com": {
-    id: "demo-tech-001",
-    email: "tech@masscar.com",
-    role: "technician",
-    firstName: "Tech",
-    lastName: "Worker",
-    isActive: true,
-  },
-  "customer@masscar.com": {
-    id: "demo-customer-001",
-    email: "customer@masscar.com",
-    role: "customer",
-    firstName: "Customer",
-    lastName: "User",
-    isActive: true,
-  },
-}
-
-const STORAGE_KEY = "mass_workshop_auth"
-
 export function ConvexAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [orgId, setOrgId] = useState<string | null>(null)
+  const [orgName, setOrgName] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [authError, setAuthError] = useState<string | null>(null)
 
-  // Load user from localStorage on mount
-  useEffect(() => {
+  // Hydrate session from cookie on mount
+  const refreshSession = useCallback(async () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsedUser = JSON.parse(stored)
-        setUser(parsedUser)
+      const res = await fetch("/api/auth/session", { credentials: "include" })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.user) {
+          setUser(data.user)
+          setOrgId(data.orgId || null)
+          setOrgName(data.orgName || null)
+          return
+        }
       }
-    } catch (error) {
-      console.error("[Auth] Failed to load stored user:", error)
+      // No valid session
+      setUser(null)
+      setOrgId(null)
+      setOrgName(null)
+    } catch {
+      setUser(null)
+      setOrgId(null)
+      setOrgName(null)
     } finally {
       setIsLoading(false)
     }
   }, [])
 
+  useEffect(() => {
+    refreshSession()
+  }, [refreshSession])
+
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true)
-      setAuthError(null)
 
       if (!email || !password) {
         return { success: false, error: "Email and password are required" }
       }
 
-      // Demo mode: Check if email matches a demo user with password "123456"
-      const demoUser = demoUsers[email.toLowerCase()]
-      if (demoUser && password === "123456") {
-        console.log("[Auth] Demo login successful:", email)
-        setUser(demoUser)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser))
-        
-        // Ensure middleware can read auth context via cookie
-        document.cookie = `mass_workshop_auth=true; path=/; max-age=86400; SameSite=Lax`
-        
-        return { success: true }
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        return { success: false, error: data.error || "Login failed" }
       }
 
-      // If not a demo user, return error
-      return { 
-        success: false, 
-        error: "Invalid credentials. Use demo accounts: admin@masscar.com, staff@masscar.com, tech@masscar.com, or customer@masscar.com with password: 123456" 
-      }
+      setUser(data.user)
+      setOrgId(data.orgId || null)
+      setOrgName(data.orgName || null)
+
+      return { success: true }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-      console.error("[Auth] Login error:", error)
-      return { success: false, error: errorMessage }
+      return { success: false, error: "Network error. Please try again." }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const signup = async (data: SignupData): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoading(true)
+
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        return { success: false, error: result.error || "Signup failed" }
+      }
+
+      setUser(result.user)
+      setOrgId(result.orgId || null)
+      setOrgName(result.orgName || null)
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: "Network error. Please try again." }
     } finally {
       setIsLoading(false)
     }
@@ -196,39 +142,36 @@ export function ConvexAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async (): Promise<void> => {
     try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      })
+    } catch {
+      // Silent fail — cookie will be cleared either way
+    } finally {
       setUser(null)
-      setAuthError(null)
-      localStorage.removeItem(STORAGE_KEY)
-      document.cookie = "mass_workshop_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
-      console.log("[Auth] Logged out successfully")
-    } catch (error) {
-      console.error("[Auth] Logout error:", error)
-      // Still clear state even on error
-      setUser(null)
+      setOrgId(null)
+      setOrgName(null)
     }
   }
 
   const hasPermission = (module: string, action: string): boolean => {
     if (!user) return false
-
-    const userPermissions = rolePermissions[user.role]
-    if (!userPermissions) return false
-
-    const modulePermissions = userPermissions[module]
-    if (!modulePermissions) return false
-
-    return modulePermissions[action] || false
+    return hasModuleAccess(user.role, module, action as "read" | "write" | "delete" | "manage")
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        orgId,
+        orgName,
         login,
+        signup,
         logout,
         isLoading,
         hasPermission,
-        authError,
+        refreshSession,
       }}
     >
       {children}

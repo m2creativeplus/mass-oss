@@ -22,8 +22,19 @@ export default defineSchema({
     isActive: v.boolean(),
     avatarUrl: v.optional(v.string()),
     lastLoginAt: v.optional(v.string()),
-    currentLoad: v.optional(v.number()), // Number of active jobs
-    maxCapacity: v.optional(v.number()), // Allowed concurrent jobs
+    // Auth fields
+    passwordHash: v.optional(v.string()),
+    provider: v.optional(v.union(
+      v.literal("email"),
+      v.literal("google"),
+      v.literal("facebook"),
+      v.literal("apple")
+    )),
+    providerId: v.optional(v.string()),
+    emailVerified: v.optional(v.boolean()),
+    // Technician fields
+    currentLoad: v.optional(v.number()),
+    maxCapacity: v.optional(v.number()),
     skillLevel: v.optional(v.object({
       engine: v.number(),
       electrical: v.number(),
@@ -54,7 +65,8 @@ export default defineSchema({
     role: v.union(
       v.literal("admin"),
       v.literal("staff"),
-      v.literal("technician")
+      v.literal("technician"),
+      v.literal("customer")
     ),
     isActive: v.boolean(),
   }).index("by_user", ["userId"])
@@ -1226,5 +1238,67 @@ export default defineSchema({
     createdAt: v.string(),
   }).index("by_org", ["orgId"])
     .index("by_status", ["status"]),
+
+  sessions: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    expiresAt: v.number(), // Unix timestamp ms
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_token", ["token"])
+    .index("by_user", ["userId"])
+    .index("by_expires", ["expiresAt"]),
+
+  // ============ AUTH: PASSWORD RESETS ============
+  passwordResetTokens: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    expiresAt: v.number(),
+    used: v.boolean(),
+  }).index("by_token", ["token"]),
+
+  // ============ AUTH: AUDIT LOGS ============
+  auditLogs: defineTable({
+    userId: v.optional(v.id("users")),
+    action: v.string(), // "login", "logout", "signup", "profile_update", "vehicle_added", etc.
+    metadata: v.optional(v.string()), // JSON string of extra context
+    ipAddress: v.optional(v.string()),
+    orgId: v.optional(v.string()),
+    timestamp: v.number(),
+  }).index("by_user", ["userId"])
+    .index("by_action", ["action"])
+    .index("by_org", ["orgId"])
+    .index("by_timestamp", ["timestamp"]),
+
+  // ============ AUTH: COOKIE CONSENTS ============
+  cookieConsents: defineTable({
+    visitorId: v.string(), // anonymous fingerprint or userId
+    userId: v.optional(v.id("users")),
+    essential: v.boolean(), // always true
+    analytics: v.boolean(),
+    preferences: v.boolean(),
+    consentedAt: v.number(),
+    ipAddress: v.optional(v.string()),
+  }).index("by_visitor", ["visitorId"])
+    .index("by_user", ["userId"]),
+
+  // ============ AUTH: OAUTH ACCOUNTS ============
+  oauthAccounts: defineTable({
+    userId: v.id("users"),
+    provider: v.union(
+      v.literal("google"),
+      v.literal("facebook"),
+      v.literal("apple")
+    ),
+    providerId: v.string(), // External provider user ID
+    email: v.string(),
+    displayName: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    accessToken: v.optional(v.string()),
+    refreshToken: v.optional(v.string()),
+    linkedAt: v.number(),
+  }).index("by_provider_id", ["provider", "providerId"])
+    .index("by_user", ["userId"]),
 });
 

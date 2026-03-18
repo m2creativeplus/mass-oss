@@ -4,6 +4,7 @@ import './globals.css'
 import { ConvexClientProvider } from '@/components/providers/convex-provider'
 import { PHProvider } from "@/components/providers/posthog-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,6 +39,7 @@ export default function RootLayout({
           <PHProvider>
             <ConvexClientProvider>
               {children}
+              <CookieConsentBanner />
             </ConvexClientProvider>
           </PHProvider>
         </ThemeProvider>
@@ -45,4 +47,4 @@ export default function RootLayout({
     </html>
   )
 }
-// FORCE DEPLOY 1767448768
+
