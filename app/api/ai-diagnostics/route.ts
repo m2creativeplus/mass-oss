@@ -8,6 +8,16 @@ import { NextResponse } from "next/server"
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || ""
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
+export async function GET() {
+  return NextResponse.json({
+    engine: "MASS OSS × SAIP Diagnostics Engine v2.0",
+    model: "Gemini Flash 2.0",
+    coverage: "Hargeisa, Republic of Somaliland",
+    calibration: "Hot/dusty climate, unpaved roads, Japanese imports",
+    usage: "POST with { symptoms, vehicleInfo, dtcCodes, mileage }",
+  })
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
