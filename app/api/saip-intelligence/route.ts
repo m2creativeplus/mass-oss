@@ -119,10 +119,81 @@ Use real market knowledge. demandLevel must be "High", "Medium", or "Low". trend
 
     const rawText = await callGemini(prompt)
     if (!rawText) {
-      return NextResponse.json(
-        { error: "All Gemini API keys quota exhausted. Please enable billing at aistudio.google.com or try again in 1 minute." },
-        { status: 429 }
-      )
+      // Graceful degradation when all quotas are exhausted
+      return NextResponse.json({
+        success: true,
+        source: "static-fallback (quota exhausted)",
+        generatedAt: new Date().toISOString(),
+        market: "Hargeisa, Republic of Somaliland",
+        count: 5,
+        vehicles: [
+          {
+            make: "Toyota",
+            model: "Land Cruiser 200 Series",
+            year: "2015-2021",
+            beForwardPriceUSD: 28500,
+            shippingCostUSD: 2200,
+            customsDutyUSD: 4275,
+            hargeisaStreetPriceUSD: 39500,
+            demandLevel: "High",
+            demandScore: 95,
+            trend: "stable",
+            notes: "Premium market staple for NGOs, Govt, and executives."
+          },
+          {
+            make: "Toyota",
+            model: "Hiace",
+            year: "2015-2020",
+            beForwardPriceUSD: 9500,
+            shippingCostUSD: 1800,
+            customsDutyUSD: 1425,
+            hargeisaStreetPriceUSD: 15500,
+            demandLevel: "High",
+            demandScore: 98,
+            trend: "rising",
+            notes: "Extremely high demand for public transport and logistics."
+          },
+          {
+            make: "Suzuki",
+            model: "Swift",
+            year: "2018-2022",
+            beForwardPriceUSD: 3800,
+            shippingCostUSD: 1300,
+            customsDutyUSD: 570,
+            hargeisaStreetPriceUSD: 7200,
+            demandLevel: "Medium",
+            demandScore: 75,
+            trend: "rising",
+            notes: "Popular among young professionals and delivery apps like SomDelivery."
+          },
+          {
+            make: "Toyota",
+            model: "Corolla",
+            year: "2018-2022",
+            beForwardPriceUSD: 6500,
+            shippingCostUSD: 1500,
+            customsDutyUSD: 975,
+            hargeisaStreetPriceUSD: 11000,
+            demandLevel: "High",
+            demandScore: 88,
+            trend: "stable",
+            notes: "Reliable daily driver, parts are abundant locally."
+          },
+          {
+            make: "Toyota",
+            model: "Probox",
+            year: "2014-2019",
+            beForwardPriceUSD: 2500,
+            shippingCostUSD: 1300,
+            customsDutyUSD: 375,
+            hargeisaStreetPriceUSD: 5500,
+            demandLevel: "High",
+            demandScore: 90,
+            trend: "rising",
+            notes: "Workhorse for small businesses and distributors."
+          }
+        ]
+      })
     }
 
     const jsonMatch = rawText.match(/\[[\s\S]*\]/)
