@@ -1,51 +1,45 @@
 import { NextResponse } from "next/server"
 
 // ============================================================
-// MASS OSS × SAIP — Gemini Market Intelligence Engine
-// Real vehicle pricing via Gemini Flash + Google Search grounding
+// MASS OSS × SAIP — Intelligence Engine via GitHub Models
+// Real vehicle pricing via GPT-4o-mini using GitHub Models API
 // ============================================================
 
-// Multi-key rotation — exhausts all available keys before giving up
-const GEMINI_KEYS = [
-  process.env.GEMINI_API_KEY,
-  process.env.GEMINI_API_KEY_2,
-  process.env.GEMINI_API_KEY_3,
-  // Fallback keys stored as env vars below
-].filter(Boolean) as string[]
+const GITHUB_AI_TOKEN = process.env.GITHUB_AI_TOKEN || ""
 
-const GEMINI_MODELS = [
-  "gemini-1.5-flash",   // Different quota pool — try first
-  "gemini-2.0-flash",   // Fallback
-  "gemini-1.5-flash-8b", // Ultra-fast fallback
-]
+async function callGitHubModel(systemPrompt: string, userPrompt: string): Promise<string | null> {
+  if (!GITHUB_AI_TOKEN) return null
+  
+  try {
+    const res = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GITHUB_AI_TOKEN}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", "content": systemPrompt },
+          { role: "user", "content": userPrompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 4096
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
 
-async function callGemini(prompt: string, maxTokens = 4096): Promise<string | null> {
-  const keys = GEMINI_KEYS.length > 0 ? GEMINI_KEYS : [""]
-  for (const model of GEMINI_MODELS) {
-    for (const key of keys) {
-      if (!key) continue
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens },
-            }),
-            signal: AbortSignal.timeout(30000),
-          }
-        )
-        if (res.status === 429) continue // quota exhausted — try next key/model
-        if (!res.ok) continue
-        const data = await res.json()
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-        if (text) return text
-      } catch { continue }
+    if (!res.ok) {
+      console.error("GitHub Models API Error:", await res.text())
+      return null
     }
+
+    const data = await res.json()
+    return data?.choices?.[0]?.message?.content || null
+  } catch (err) {
+    console.error("callGitHubModel error:", err)
+    return null
   }
-  return null
 }
 
 const HARGEISA_CONTEXT = `
@@ -67,10 +61,9 @@ export async function POST(request: Request) {
   try {
     const { makes, forceRefresh } = await request.json().catch(() => ({}))
     
-    const hasKeys = GEMINI_KEYS.length > 0
-    if (!hasKeys) {
+    if (!GITHUB_AI_TOKEN) {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY not configured. Go to Settings → AI Keys to add your Google Gemini key." },
+        { error: "GITHUB_AI_TOKEN not configured." },
         { status: 400 }
       )
     }
@@ -86,9 +79,7 @@ export async function POST(request: Request) {
       "Suzuki Swift 2016-2020",
     ]
 
-    const prompt = `${HARGEISA_CONTEXT}
-
-Provide REAL current market price estimates for the following vehicles in Hargeisa/Somaliland as of March 2026.
+    const userPrompt = `Provide REAL current market price estimates for the following vehicles in Hargeisa/Somaliland as of March 2026.
 For each vehicle, return accurate (not fabricated) price data based on your knowledge of:
 - BE FORWARD Japan listing prices
 - Berbera Port import costs
@@ -117,7 +108,7 @@ Return ONLY a valid JSON array with this exact structure (no markdown, no code b
 
 Use real market knowledge. demandLevel must be "High", "Medium", or "Low". trend must be "rising", "stable", or "falling".`
 
-    const rawText = await callGemini(prompt)
+    const rawText = await callGitHubModel(HARGEISA_CONTEXT, userPrompt)
     if (!rawText) {
       // Graceful degradation when all quotas are exhausted
       return NextResponse.json({
@@ -204,7 +195,7 @@ Use real market knowledge. demandLevel must be "High", "Medium", or "Low". trend
 
     return NextResponse.json({
       success: true,
-      source: "gemini-multi-key",
+      source: "github-models-gpt-4o-mini",
       generatedAt: new Date().toISOString(),
       market: "Hargeisa, Republic of Somaliland",
       vehicles: marketData,
@@ -221,8 +212,8 @@ Use real market knowledge. demandLevel must be "High", "Medium", or "Low". trend
 
 export async function GET() {
   return NextResponse.json({
-    engine: "SAIP Market Intelligence v2.0",
-    model: "Gemini Flash 2.0",
+    engine: "SAIP Market Intelligence v3.0 (GPT-4o)",
+    model: "gpt-4o-mini",
     coverage: "Hargeisa, Berbera, Borama, Burao, Las Anod",
     dataSource: "BE FORWARD Japan + Somaliland field intelligence",
     usage: "POST with optional { makes: string[] } to get real market prices",
