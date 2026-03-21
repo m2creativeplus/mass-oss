@@ -9,6 +9,7 @@
  */
 
 import type * as aiContent from "../aiContent.js";
+import type * as apiKeys from "../apiKeys.js";
 import type * as appointments from "../appointments.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
@@ -64,6 +65,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   aiContent: typeof aiContent;
+  apiKeys: typeof apiKeys;
   appointments: typeof appointments;
   auditLog: typeof auditLog;
   auth: typeof auth;

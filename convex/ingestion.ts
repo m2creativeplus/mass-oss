@@ -1,185 +1,235 @@
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
-
-// ============================================================
-// MASS DATA INGESTION ENGINE
-// Handles external API payloads (Scrap.io, Outscraper, Manual CSV)
-// Enforces "Golden Record" rules via deduplication
-// ============================================================
-
-export const debugSeed = mutation({
-  args: {},
-  handler: async (ctx) => {
-    // 1. Create Organization if it doesn't exist
-    let orgId;
-    const existingOrg = await ctx.db
-      .query("organizations")
-      .withIndex("by_slug", (q) => q.eq("slug", "mass-hargeisa"))
-      .first();
-
-    if (existingOrg) {
-      orgId = existingOrg._id;
-    } else {
-        // Create Org
-        const ownerId = await ctx.db.insert("users", {
-            email: "owner@masscar.com",
-            firstName: "Owner",
-            lastName: "Executive",
-            role: "admin",
-            isActive: true
-        });
-        orgId = await ctx.db.insert("organizations", {
-            name: "MASS Car Workshop",
-            slug: "mass-hargeisa",
-            ownerId: ownerId,
-            plan: "enterprise",
-            isActive: true,
-        });
-        console.log("Created Org + Owner");
-        
-        // Ensure owner has role
-        await ctx.db.insert("userOrgRoles", { userId: ownerId, orgId: orgId, role: "admin", isActive: true });
-    }
-    
-    // 2. Create Admin Demo User
-    const adminEmail = "admin@masscar.com";
-    const existingAdmin = await ctx.db.query("users").withIndex("by_email", q => q.eq("email", adminEmail)).first();
-    let adminId = existingAdmin?._id;
-    
-    if (!existingAdmin) {
-        adminId = await ctx.db.insert("users", {
-            email: adminEmail,
-            firstName: "Admin",
-            lastName: "User",
-            role: "admin",
-            isActive: true
-        });
-        console.log("Created Admin");
-    }
-    
-    if (orgId && adminId) {
-        const hasRole = await ctx.db.query("userOrgRoles").withIndex("by_user_org", q => q.eq("userId", adminId!).eq("orgId", orgId!)).first();
-        if (!hasRole) {
-            await ctx.db.insert("userOrgRoles", { userId: adminId!, orgId: orgId!, role: "admin", isActive: true });
-            console.log("Assigned Admin Role");
-        }
-    }
-
-    return "Debug Seed Completed";
-  }
-});
-
 /**
- * INGEST LEADS
- * Acccepts a batch of raw lead data.
- * Checks for duplicates against `automotivePois` and `massPartners`.
- * Only inserts net-new records.
+ * SAIP Convex Ingestion API
+ * All 6 agents push data through these mutations
+ * Built to match the exact MASS OSS schema
  */
-export const ingestLeads = mutation({
+
+import { mutation, query } from "./_generated/server"
+import { v } from "convex/values"
+
+// Category normalizer for automotivePois strict union
+function normalizeCategory(raw: string): "garage" | "spare_parts" | "car_dealer" | "tire_shop" | "fuel_station" | "fleet_operator" | "oil_lubricants" | "batteries" | "tools_equipment" {
+  const lower = raw.toLowerCase()
+  if (lower.includes("workshop") || lower.includes("repair") || lower.includes("mechanic") || lower.includes("service") || lower.includes("general") || lower.includes("automotive")) return "garage"
+  if (lower.includes("spare") || lower.includes("parts")) return "spare_parts"
+  if (lower.includes("dealer") || lower.includes("import") || lower.includes("seller")) return "car_dealer"
+  if (lower.includes("tyre") || lower.includes("tire")) return "tire_shop"
+  if (lower.includes("fuel") || lower.includes("petrol") || lower.includes("station")) return "fuel_station"
+  if (lower.includes("fleet")) return "fleet_operator"
+  if (lower.includes("oil") || lower.includes("lubricant")) return "oil_lubricants"
+  if (lower.includes("battery") || lower.includes("batteries")) return "batteries"
+  if (lower.includes("tool") || lower.includes("equipment")) return "tools_equipment"
+  return "garage" // default fallback
+}
+
+// ── Agent 1+2: Upsert Automotive POI (from Google Search + Maps) ────────────
+export const upsertAutomotivePoi = mutation({
   args: {
-    source: v.string(), // "outscraper_api", "scrap_io", "manual_import"
-    batchId: v.string(),
-    leads: v.array(v.object({
-      businessName: v.string(),
-      category: v.string(),
-      city: v.string(),
-      phone: v.optional(v.string()),
-      email: v.optional(v.string()),
-      address: v.optional(v.string()),
-      website: v.optional(v.string()),
-      latitude: v.optional(v.number()),
-      longitude: v.optional(v.number()),
-      notes: v.optional(v.string()),
-    })),
+    name: v.string(),
+    category: v.string(),    // raw string — will be normalized
+    city: v.string(),
+    address: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    rating: v.optional(v.number()),
+    reviewCount: v.optional(v.number()),
+    lat: v.optional(v.number()),
+    lng: v.optional(v.number()),
+    googleMapsUrl: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
+    description: v.optional(v.string()),
+    confidence: v.optional(v.number()),
+    source: v.string(),
+    scrapedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const results = {
-      processed: 0,
-      inserted: 0,
-      duplicates: 0,
-      errors: 0,
-    };
+    const category = normalizeCategory(args.category)
 
-    const existingPois = await ctx.db.query("automotivePois").collect();
-    const existingPartners = await ctx.db.query("massPartners").collect();
+    // Check for existing POI by name + city
+    const existing = await ctx.db
+      .query("automotivePois")
+      .withIndex("by_city", (q) => q.eq("city", args.city))
+      .filter((q) => q.eq(q.field("businessName"), args.name))
+      .first()
 
-    // Create lookup sets for fast deduplication (Phone & Normalized Name)
-    const phoneSet = new Set<string>();
-    const nameSet = new Set<string>();
-
-    // Helper: Normalize phone (basic cleanup)
-    const normalize = (str: string) => str.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-
-    // Populate lookups from DB
-    existingPois.forEach(p => {
-      if (p.phone) phoneSet.add(normalize(p.phone));
-      nameSet.add(normalize(p.businessName));
-    });
-    existingPartners.forEach(p => {
-      if (p.phone) phoneSet.add(normalize(p.phone));
-      nameSet.add(normalize(p.partnerName));
-    });
-
-    for (const lead of args.leads) {
-      results.processed++;
-
-      // 1. CHECK DUPLICATES
-      let isDuplicate = false;
-
-      // Check Name (Fuzzy exact match on normalized string)
-      if (nameSet.has(normalize(lead.businessName))) isDuplicate = true;
-
-      // Check Phone (if exists)
-      if (lead.phone && phoneSet.has(normalize(lead.phone))) isDuplicate = true;
-
-      if (isDuplicate) {
-        results.duplicates++;
-        continue;
-      }
-
-      // 2. MAP CATEGORY (Normalize to schema union)
-      let mappedCategory = "garage"; // Default
-      const catLower = lead.category.toLowerCase();
-      
-      if (catLower.includes("part")) mappedCategory = "spare_parts";
-      else if (catLower.includes("dealer") || catLower.includes("sales")) mappedCategory = "car_dealer";
-      else if (catLower.includes("tire") || catLower.includes("tyre")) mappedCategory = "tire_shop";
-      else if (catLower.includes("fuel") || catLower.includes("station")) mappedCategory = "fuel_station";
-      else if (catLower.includes("oil") || catLower.includes("lube")) mappedCategory = "oil_lubricants";
-      else if (catLower.includes("battery")) mappedCategory = "batteries";
-      else if (catLower.includes("tool")) mappedCategory = "tools_equipment";
-
-      // 3. INSERT RECORD
-      try {
-        await ctx.db.insert("automotivePois", {
-          businessName: lead.businessName,
-          category: mappedCategory as any, // Cast to union type
-          city: lead.city,
-          phone: lead.phone,
-          email: lead.email,
-          address: lead.address,
-          website: lead.website,
-          latitude: lead.latitude,
-          longitude: lead.longitude,
-          source: args.source,
-          verifiedAt: new Date().toISOString(),
-          isActive: true,
-          notes: `Ingested Batch: ${args.batchId}. Original Note: ${lead.notes || ''}`,
-        });
-
-        // Add to local set to prevent dups within the same batch
-        nameSet.add(normalize(lead.businessName));
-        if (lead.phone) phoneSet.add(normalize(lead.phone));
-        
-        results.inserted++;
-      } catch (err) {
-        console.error(`Failed to insert ${lead.businessName}:`, err);
-        results.errors++;
-      }
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        rating: args.rating ?? existing.rating,
+        reviewCount: args.reviewCount ?? existing.reviewCount,
+        phone: args.phone ?? existing.phone,
+        latitude: args.lat ?? existing.latitude,
+        longitude: args.lng ?? existing.longitude,
+      })
+      return { action: "updated", id: existing._id }
     }
 
-    return results;
+    const id = await ctx.db.insert("automotivePois", {
+      businessName: args.name,
+      category,
+      city: args.city,
+      address: args.address,
+      phone: args.phone,
+      rating: args.rating,
+      reviewCount: args.reviewCount,
+      latitude: args.lat,
+      longitude: args.lng,
+      website: args.googleMapsUrl || args.sourceUrl,
+      source: args.source,
+      notes: args.description,
+      isActive: true,
+    })
+    return { action: "inserted", id }
   },
-});
+})
 
+// ── Agent 3: Upsert Facebook Vehicle Listing (into marketPrices table) ──────
+// Using marketPrices as the vehicle listings table since it has the right fields
+export const upsertVehicleListing = mutation({
+  args: {
+    make: v.string(),
+    model: v.string(),
+    year: v.optional(v.number()),
+    priceUSD: v.optional(v.number()),
+    mileageKm: v.optional(v.number()),
+    condition: v.optional(v.string()),
+    location: v.optional(v.string()),
+    sourceUrl: v.string(),
+    description: v.optional(v.string()),
+    source: v.string(),
+    fraudRisk: v.optional(v.string()),
+    scrapedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Facebook listings go into marketPrices as real data points
+    if (!args.make || !args.model || !args.year || !args.priceUSD) {
+      return { action: "skipped", reason: "insufficient data" }
+    }
+    // Check for existing listing by make+model+year+price combo
+    const existing = await ctx.db
+      .query("marketPrices")
+      .withIndex("by_model", (q) => q.eq("make", args.make).eq("model", args.model))
+      .filter((q) => q.eq(q.field("year"), args.year!))
+      .first()
 
+    if (existing) {
+      // Update price if newer
+      await ctx.db.patch(existing._id, {
+        beForwardPriceUSD: args.priceUSD!,
+        lastUpdated: new Date(args.scrapedAt).toISOString(),
+      })
+      return { action: "updated", id: existing._id }
+    }
+
+    // Insert as new marketplace listing (orgId = "saip-public")
+    const id = await ctx.db.insert("marketPrices", {
+      make: args.make,
+      model: args.model,
+      year: args.year,
+      beForwardPriceUSD: args.priceUSD,
+      hargeisaStreetPriceUSD: Math.round(args.priceUSD * 1.35), // estimated 35% premium
+      shippingCostUSD: 1800,
+      customsDutyUSD: Math.round(args.priceUSD * 0.15),
+      demandLevel: "Medium",
+      lastUpdated: new Date(args.scrapedAt).toISOString(),
+      orgId: "saip-public",
+    })
+    return { action: "inserted", id }
+  },
+})
+
+// ── Agent 5: Upsert Market Valuation (Vehicle Valuator → marketPriceIntelligence) ─
+export const upsertMarketValuation = mutation({
+  args: {
+    make: v.string(),
+    model: v.string(),
+    yearRange: v.string(),
+    beForwardAvgUSD: v.number(),
+    shippingUSD: v.optional(v.number()),
+    dutyUSD: v.optional(v.number()),
+    hargeisaStreetAvgUSD: v.number(),
+    hargeisaStreetMinUSD: v.optional(v.number()),
+    hargeisaStreetMaxUSD: v.optional(v.number()),
+    demandLevel: v.string(),
+    demandScore: v.optional(v.number()),
+    trend: v.string(),
+    notes: v.optional(v.string()),
+    valuedAt: v.number(),
+    source: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const [yearFromStr, yearToStr] = args.yearRange.split("-")
+    const yearFrom = parseInt(yearFromStr) || 2000
+    const yearTo = parseInt(yearToStr) || 2024
+
+    const existing = await ctx.db
+      .query("marketPriceIntelligence")
+      .withIndex("by_make", (q) => q.eq("vehicleMake", args.make))
+      .filter((q) => q.eq(q.field("vehicleModel"), args.model))
+      .first()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        fobPriceUsd: args.beForwardAvgUSD,
+        streetPriceUsd: args.hargeisaStreetAvgUSD,
+        recordedAt: new Date(args.valuedAt).toISOString(),
+        notes: args.notes,
+      })
+      return { action: "updated", id: existing._id }
+    }
+
+    const id = await ctx.db.insert("marketPriceIntelligence", {
+      vehicleMake: args.make,
+      vehicleModel: args.model,
+      yearFrom,
+      yearTo,
+      source: args.source,
+      fobPriceUsd: args.beForwardAvgUSD,
+      cAndFPriceUsd: args.beForwardAvgUSD + (args.shippingUSD || 1800),
+      streetPriceUsd: args.hargeisaStreetAvgUSD,
+      condition: "Good",
+      recordedAt: new Date(args.valuedAt).toISOString(),
+      notes: args.notes,
+    })
+    return { action: "inserted", id }
+  },
+})
+
+// ── Public Queries: Used by MASS OSS ai-tools page ─────────────────────────
+
+export const getMarketPriceIntelligence = query({
+  args: {},
+  handler: async (ctx) => {
+    return ctx.db.query("marketPriceIntelligence").collect()
+  },
+})
+
+export const getMarketPrices = query({
+  args: { orgId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("marketPrices").collect()
+    // Return saip-public data plus org-specific data
+    return all.filter((p) => p.orgId === "saip-public" || p.orgId === args.orgId)
+  },
+})
+
+export const getPoisByCity = query({
+  args: { city: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    if (args.city) {
+      return ctx.db
+        .query("automotivePois")
+        .withIndex("by_city", (q) => q.eq("city", args.city!))
+        .collect()
+    }
+    return ctx.db.query("automotivePois").collect()
+  },
+})
+
+export const getVinRegistry = query({
+  args: { vin: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("vinRegistry")
+      .withIndex("by_vin", (q) => q.eq("vin", args.vin.toUpperCase()))
+      .first()
+  },
+})

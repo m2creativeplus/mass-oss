@@ -26,8 +26,10 @@ import {
   MapPin,
   Phone,
   Mail,
-  CheckCircle2
+  CheckCircle2,
+  Key
 } from "lucide-react"
+import { ApiKeyManager } from "@/components/settings/api-key-manager"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 
@@ -163,6 +165,9 @@ export function Settings({ orgId }: { orgId: string }) {
           </TabsTrigger>
           <TabsTrigger value="integrations" className="data-[state=active]:bg-amber-500 data-[state=active]:text-black rounded-xl px-5 py-3 font-bold">
             <Share2 className="h-4 w-4 mr-2" /> Integrations
+          </TabsTrigger>
+          <TabsTrigger value="ai-keys" className="data-[state=active]:bg-violet-500 data-[state=active]:text-white rounded-xl px-5 py-3 font-bold">
+            <Key className="h-4 w-4 mr-2" /> AI Keys
           </TabsTrigger>
         </TabsList>
 
@@ -351,6 +356,11 @@ export function Settings({ orgId }: { orgId: string }) {
               </Card>
             </motion.div>
           </motion.div>
+        </TabsContent>
+
+        {/* AI KEYS TAB */}
+        <TabsContent value="ai-keys">
+          <ApiKeyManager orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>

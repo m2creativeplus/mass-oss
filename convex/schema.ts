@@ -1300,5 +1300,38 @@ export default defineSchema({
     linkedAt: v.number(),
   }).index("by_provider_id", ["provider", "providerId"])
     .index("by_user", ["userId"]),
+
+  // ============ API KEYS (Secure AI Model Key Management) ============
+  apiKeys: defineTable({
+    orgId: v.string(),
+    provider: v.union(
+      v.literal("openai"),
+      v.literal("google"),
+      v.literal("anthropic"),
+      v.literal("mistral"),
+      v.literal("groq"),
+      v.literal("cohere"),
+      v.literal("huggingface"),
+      v.literal("custom")
+    ),
+    label: v.string(),             // User-friendly name e.g. "Production OpenAI"
+    keyHash: v.string(),           // SHA-256 hash for verification
+    keyPrefix: v.string(),         // First 8 chars for display e.g. "sk-proj-..."
+    keySuffix: v.string(),         // Last 4 chars for display e.g. "...x9Af"
+    encryptedKey: v.string(),      // Base64-encoded key (server-side only)
+    isActive: v.boolean(),
+    lastTestedAt: v.optional(v.string()),
+    lastTestStatus: v.optional(v.union(
+      v.literal("success"),
+      v.literal("failed"),
+      v.literal("expired"),
+      v.literal("rate_limited")
+    )),
+    lastTestMessage: v.optional(v.string()),
+    addedBy: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  }).index("by_org", ["orgId"])
+    .index("by_org_provider", ["orgId", "provider"]),
 });
 

@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { useConvexAuth } from "./convex-auth-provider"
 
 // ============================================================
@@ -14,9 +16,7 @@ export function ConvexLoginForm() {
   const searchParams = useSearchParams()
   const { login, signup, isLoading } = useConvexAuth()
 
-  // Add convex directly for forgot password mutations
-  const { useMutation } = require("convex/react")
-  const { api } = require("@/convex/_generated/api")
+  // Forgot password mutations (proper ES imports)
   const requestReset = useMutation(api.auth.requestPasswordReset)
   const resetWithToken = useMutation(api.auth.resetPasswordWithToken)
 
