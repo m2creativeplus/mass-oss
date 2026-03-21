@@ -13,7 +13,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ""
 const MAX_KEYWORDS = parseInt(process.env.MAX_KEYWORDS || "25")
 
 const SEARCH_KEYWORDS = [
-  // Hargeisa Automotive
+  // Hargeisa Automotive (English)
   "car workshop Hargeisa Somaliland",
   "spare parts Hargeisa",
   "auto repair Hargeisa",
@@ -24,22 +24,54 @@ const SEARCH_KEYWORDS = [
   "tyre shop Hargeisa",
   "battery shop Hargeisa",
   "engine repair Hargeisa",
+  "motor sales Hargeisa",
+  "auto spareparts Somaliland",
+  
+  // Hargeisa — Expanded Service Locations
+  "garage Hargeisa Somaliland",
+  "carwash Hargeisa",
+  "car accessories Somaliland",
+  "mechanic Hargeisa",
+  "auto workshop Hargeisa",
+  
+  // Somali Deep Dive Automotive Keywords
+  "gaadhi iiba Hargeisa",
+  "gaadhi cusub Somaliland",
+  "macdarka baabuurta Hargeisa",
+  "macdarka toyota Hargeisa",
+  "dilaal baabuurta Hargeisa",
+  "Toyota Noah iiba Hargeisa",
+  "Voxy iiba Hargeisa",
+  "Qaybaha baabuurta Hargeisa", // Spare parts
+  
   // Berbera / Port
   "car import Berbera port",
   "vehicle clearance Berbera Somaliland",
   "BE FORWARD Somaliland",
   "SBT Japan Somaliland",
+  
   // Borama / Burao / Las Anod
   "car workshop Borama",
   "auto parts Burao",
+  "macdarka Borama",
   "vehicle repair Las Anod",
+  
   // Parts markets
   "Toyota Hiace parts Hargeisa",
   "Land Cruiser parts Somaliland",
   "Japanese spare parts Hargeisa",
-  // Facebook groups (for seeding facebook agent)
+  
+  // Social Media Deep Dives (Facebook & TikTok)
   "site:facebook.com Hargeisa cars",
   "site:facebook.com Somaliland vehicles",
+  "site:facebook.com gaadhi iiba",
+  "site:tiktok.com gaadhi iiba hargeisa",
+  "site:tiktok.com macdarka hargeisa",
+  "site:tiktok.com dilaal Somaliland",
+  "site:tiktok.com car accessories hargeisa",
+  "site:facebook.com car accessories hargeisa",
+  "site:facebook.com garage hargeisa",
+  
   // Marketplace
   "lomax.so cars",
   "jumia Somaliland vehicles",
@@ -120,6 +152,16 @@ Return empty array [] if no valid automotive businesses found.`
   )
 
   const data = await res.json()
+  
+  if (data.error) {
+    console.error("Gemini API Error:", data.error.message);
+    if (data.error.code === 429) {
+      console.log("  ⏳ Rate limited. Waiting 30s...");
+      await new Promise(r => setTimeout(r, 30000));
+    }
+    return []
+  }
+
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
   const match = text.match(/\[[\s\S]*\]/)
   if (!match) return []
@@ -193,9 +235,11 @@ async function pushToConvex(businesses: any[]) {
     const BATCH_SIZE = 20
     const normalizedBizs: any[] = []
     for (let i = 0; i < allResults.length; i += BATCH_SIZE) {
+      console.log(`  🤖 Gemini normalizing search batch ${i / BATCH_SIZE + 1}...`)
       const batch = allResults.slice(i, i + BATCH_SIZE)
       const normalized = await normalizeWithGemini(batch)
       normalizedBizs.push(...normalized)
+      await new Promise(r => setTimeout(r, 3000)) // Throttle API calls
     }
 
     console.log(`✨ Extracted ${normalizedBizs.length} automotive businesses`)

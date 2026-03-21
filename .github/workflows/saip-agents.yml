@@ -1,0 +1,89 @@
+name: SAIP Core Intelligence Agents
+
+on:
+  schedule:
+    - cron: '0 2,8,14,20 * * *' # Runs 4 times a day (every 6 hours)
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  # ── JOB 1: High Frequency Social Media Tracking (Every 6 Hours) ───────
+  social-media-intelligence:
+    name: 📱 Social Marketplaces (FB & TikTok)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CONVEX_URL: ${{ secrets.CONVEX_URL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      FB_EMAIL: ${{ secrets.FB_EMAIL }}
+      FB_PASSWORD: ${{ secrets.FB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Dependencies
+        run: npm install
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+      
+      - name: 📘 Scrape Facebook Vehicles & Brokers
+        run: npx tsx agents/facebook-listings.ts
+        continue-on-error: true
+        
+      - name: 🎵 Scrape TikTok Broker Videos
+        run: npx tsx agents/tiktok-listings.ts
+        continue-on-error: true
+
+  # ── JOB 2: Daily Business Discovery & Valuation ──────────────────────
+  directory-and-valuation:
+    name: 📍 Directories & Valuation (Daily)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Only run this job once a day (at 02:00) or if manually triggered
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
+    env:
+      CONVEX_URL: ${{ secrets.CONVEX_URL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Dependencies
+        run: npm install
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: 🔍 Google Search Discovery
+        run: npx tsx agents/google-search.ts
+        continue-on-error: true
+
+      - name: 📍 Google Maps POI Scraper
+        run: npx tsx agents/google-maps.ts
+        continue-on-error: true
+        
+      - name: 💰 Run Market Vehicle Valuator
+        run: npx tsx agents/vehicle-valuator.ts
+        continue-on-error: true
+
+  # ── JOB 3: Fraud Detection (Runs after data is ingested) ──────────────
+  fraud-detection:
+    name: 🕵️ AI Fraud Normalization
+    needs: [social-media-intelligence, directory-and-valuation]
+    # Run daily or on manual trigger
+    if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CONVEX_URL: ${{ secrets.CONVEX_URL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: 🚨 Run Deep Fraud Scans on New Inventory
+        run: npx tsx agents/fraud-detector.ts

@@ -35,4 +35,4 @@ export { getOrgSettings, updateOrgSettings } from "./settingssaasAdmin";
 export { seedDemoUsers } from "./seeding";
 export { processCheckout } from "./pos";
 export { getChartStats } from "./dashboardStats";
-export { getSAIPMarketPrices, checkVinRegistry } from "./intelligence";
+export { getSAIPMarketPrices, checkVinRegistry, getSAIPAnalytics } from "./intelligence";

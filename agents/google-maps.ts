@@ -22,16 +22,35 @@ const MAPS_SEARCHES = [
   { query: "Toyota service", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
   { query: "fuel station", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
   { query: "car wash", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  
+  // Hargeisa — Expanded Service Locations
+  { query: "garage", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  { query: "carwash", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  { query: "car accessories", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  { query: "mechanic", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  { query: "workshop", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  
+  // Hargeisa — Somali Deep Dive Terms
+  { query: "macdarka baabuurta", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  { query: "dilaal gaadiidka", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+  { query: "qaybaha baabuurta", city: "Hargeisa", lat: 9.5603, lng: 44.0650 }, 
+  { query: "motor sales", city: "Hargeisa", lat: 9.5603, lng: 44.0650 },
+
   // Berbera — port city
   { query: "car workshop", city: "Berbera", lat: 10.4333, lng: 45.0167 },
   { query: "spare parts", city: "Berbera", lat: 10.4333, lng: 45.0167 },
   { query: "vehicle import", city: "Berbera", lat: 10.4333, lng: 45.0167 },
+  
   // Borama
   { query: "car workshop", city: "Borama", lat: 9.9352, lng: 43.1829 },
   { query: "spare parts", city: "Borama", lat: 9.9352, lng: 43.1829 },
+  { query: "macdarka baabuurta", city: "Borama", lat: 9.9352, lng: 43.1829 },
+  
   // Burao
   { query: "auto repair", city: "Burao", lat: 9.5219, lng: 45.5403 },
   { query: "spare parts", city: "Burao", lat: 9.5219, lng: 45.5403 },
+  { query: "macdarka baabuurta", city: "Burao", lat: 9.5219, lng: 45.5403 },
+  
   // Las Anod
   { query: "car workshop", city: "Las Anod", lat: 8.4840, lng: 47.3565 },
 ]
@@ -121,13 +140,20 @@ function categorizeSearch(query: string): string {
 async function enrichWithGemini(listings: MapsListing[]): Promise<any[]> {
   if (!GEMINI_API_KEY || listings.length === 0) return listings
 
-  const prompt = `You are enriching Somaliland automotive business data for the SAIP platform.
+  const CHUNK_SIZE = 30;
+  const allEnriched: any[] = [];
+  
+  for (let i = 0; i < listings.length; i += CHUNK_SIZE) {
+    const chunk = listings.slice(i, i + CHUNK_SIZE);
+    console.log(`  🤖 Gemini enriching batch ${i / CHUNK_SIZE + 1} (${chunk.length} items)...`);
+    
+    const prompt = `You are enriching Somaliland automotive business data for the SAIP platform.
 
 For each business below, infer missing data based on name/location knowledge of Somaliland.
 Add services offered, estimate business age if possible, flag any major known businesses.
 
 Businesses:
-${JSON.stringify(listings.slice(0, 30), null, 2)}
+${JSON.stringify(chunk, null, 2)}
 
 Return ONLY a valid JSON array with same structure plus added fields:
 - "services": string[] (likely services offered)  
@@ -136,22 +162,53 @@ Return ONLY a valid JSON array with same structure plus added fields:
 
 Keep all original fields. Return [] if no valid data.`
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
-      }),
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
+          }),
+        }
+      )
+      
+      const data = await res.json()
+      
+      if (data.error) {
+        console.error("Gemini API Error:", data.error.message);
+        if (data.error.code === 429) {
+          console.log("  ⏳ Rate limited. Waiting 30s...");
+          await new Promise(r => setTimeout(r, 30000));
+        }
+        allEnriched.push(...chunk); // Keep original if enrichment fails
+        continue;
+      }
+      
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
+      const match = text.match(/\[[\s\S]*\]/)
+      if (match) {
+        try { 
+          const parsed = JSON.parse(match[0]);
+          allEnriched.push(...parsed);
+        } catch { 
+          allEnriched.push(...chunk); 
+        }
+      } else {
+        allEnriched.push(...chunk);
+      }
+    } catch (e) {
+      console.error(`  Batch failed to enrich`, e);
+      allEnriched.push(...chunk);
     }
-  )
-  const data = await res.json()
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
-  const match = text.match(/\[[\s\S]*\]/)
-  if (!match) return listings
-  try { return JSON.parse(match[0]) } catch { return listings }
+    
+    // Slight delay to prevent hitting RPM limits
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+  
+  return allEnriched;
 }
 
 async function pushToConvex(listings: MapsListing[]) {

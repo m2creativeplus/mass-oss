@@ -22,7 +22,10 @@ import {
   ClipboardList,
   ArrowUpRight,
   ShieldCheck,
-  Package
+  Package,
+  BrainCircuit,
+  Globe,
+  Database
 } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -38,6 +41,7 @@ export default function ReportsDashboardPage() {
   const inspections = useQuery(api.functions.getInspections, { orgId })
   const estimates = useQuery(api.functions.getEstimates, { orgId })
   const inventory = useQuery(api.functions.getInventory, { orgId })
+  const saipAnalytics = useQuery(api.functions.getSAIPAnalytics)
 
   if (!organization) return null
 
@@ -142,6 +146,9 @@ export default function ReportsDashboardPage() {
           </TabsTrigger>
           <TabsTrigger value="inventory" className="data-[state=active]:bg-amber-500 data-[state=active]:text-black rounded-xl px-6 py-3 font-bold">
             <Package className="h-4 w-4 mr-2" /> Inventory
+          </TabsTrigger>
+          <TabsTrigger value="saip-intelligence" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-black rounded-xl px-6 py-3 font-bold ml-auto border border-emerald-500/30">
+            <BrainCircuit className="h-4 w-4 mr-2" /> SAIP Intelligence
           </TabsTrigger>
         </TabsList>
 
@@ -334,6 +341,104 @@ export default function ReportsDashboardPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* SAIP Intelligence Tab */}
+        <TabsContent value="saip-intelligence">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            {/* KPI Cards */}
+            <Card className="border-emerald-500/20 bg-black/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><Database className="h-20 w-20 text-emerald-500" /></div>
+              <CardContent className="p-6">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Scraped Prices</p>
+                <h2 className="text-3xl font-black text-white mt-1">{saipAnalytics?.marketPrices.totalScraped || 0}</h2>
+                <div className="flex items-center gap-1 mt-2 text-emerald-500 text-xs">
+                  <Globe className="h-3 w-3" /> Live global data feeds
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-500/20 bg-black/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><DollarSign className="h-20 w-20 text-amber-500" /></div>
+              <CardContent className="p-6">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Avg Scraped Price</p>
+                <h2 className="text-3xl font-black text-white mt-1">${Math.round(saipAnalytics?.marketPrices.avgPrice || 0).toLocaleString()}</h2>
+                <div className="flex items-center gap-1 mt-2 text-amber-500 text-xs">
+                  Hargeisa Street Avg
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-500/20 bg-black/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><ShieldCheck className="h-20 w-20 text-red-500" /></div>
+              <CardContent className="p-6">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Flagged VINs</p>
+                <h2 className="text-3xl font-black text-white mt-1">{saipAnalytics?.vinRegistry.flagged || 0}</h2>
+                <div className="flex items-center gap-1 mt-2 text-red-500 text-xs">
+                  Out of {saipAnalytics?.vinRegistry.totalChecks || 0} checked
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-500/20 bg-black/40 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all"><Users className="h-20 w-20 text-blue-500" /></div>
+              <CardContent className="p-6">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active POIs</p>
+                <h2 className="text-3xl font-black text-white mt-1">{saipAnalytics?.pois.total || 0}</h2>
+                <div className="flex items-center gap-1 mt-2 text-blue-500 text-xs">
+                  Workshops & Suppliers discovered
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-2xl">
+              <CardHeader>
+                <CardTitle>Recent Market Intelligence</CardTitle>
+                <CardDescription>Latest vehicle pricing data ingested</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {saipAnalytics?.intelligence.recent.map((item: any) => (
+                    <div key={item._id} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
+                      <div>
+                        <div className="font-bold text-white text-sm">{item.make} {item.model} ({item.year})</div>
+                        <div className="text-xs text-muted-foreground">Demand: <span className="text-amber-500">{item.demandLevel}</span></div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-emerald-500">${item.hargeisaStreetPriceUSD?.toLocaleString()}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase">Value</div>
+                      </div>
+                    </div>
+                  ))}
+                  {(!saipAnalytics?.intelligence.recent || saipAnalytics.intelligence.recent.length === 0) && (
+                    <div className="text-center p-6 text-muted-foreground text-sm">No recent intelligence data in registry.</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/5 bg-black/40 backdrop-blur-xl shadow-2xl">
+              <CardHeader>
+                <CardTitle>Discovery Network</CardTitle>
+                <CardDescription>Automotive POIs by Category</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {saipAnalytics?.pois.byCategory && Object.entries(saipAnalytics.pois.byCategory).map(([category, count]) => (
+                    <div key={category} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
+                      <div className="font-bold text-white text-sm capitalize">{category.replace("_", " ")}</div>
+                      <Badge variant="outline" className="border-blue-500/20 text-blue-500">{count as number} Nodes</Badge>
+                    </div>
+                  ))}
+                  {(!saipAnalytics?.pois.byCategory || Object.keys(saipAnalytics.pois.byCategory).length === 0) && (
+                    <div className="text-center p-6 text-muted-foreground text-sm">No POIs discovered yet.</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

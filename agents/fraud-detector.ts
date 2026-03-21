@@ -75,9 +75,19 @@ recommendation: approve|review|flag|block`
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
     { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 4096 } }) }
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192 } }) }
   )
   const data = await res.json()
+  
+  if (data.error) {
+    console.error("Gemini API Error:", data.error.message);
+    if (data.error.code === 429) {
+      console.log("  ⏳ Rate limited. Waiting 30s...");
+      await new Promise(r => setTimeout(r, 30000));
+    }
+    return []
+  }
+
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
   const match = text.match(/\[[\s\S]*\]/)
   if (!match) return []
@@ -152,25 +162,42 @@ function localFraudCheck(listing: any): Partial<FraudAnalysis> {
 
   // Gemini deep analysis on suspicious ones
   if (suspicious.length > 0 && GEMINI_API_KEY) {
-    console.log("🤖 Running Gemini deep analysis on suspicious listings...")
-    const analyses = await analyzeWithGemini(suspicious.slice(0, 30))
+    console.log(`🤖 Running Gemini deep analysis on ${suspicious.length} suspicious listings...`)
     
-    for (const analysis of analyses) {
-      const original = suspicious[analysis.listingIndex]
-      if (!original) continue
-      try {
-        await client.mutation("ingestion:updateFraudScore" as any, {
-          id: original._id,
-          fraudScore: analysis.fraudScore,
-          fraudSignals: analysis.signals,
-          fraudSeverity: analysis.severity,
-          fraudRecommendation: analysis.recommendation,
-          fraudCheckedAt: Date.now(),
-        })
-      } catch (e) { console.error("Fraud update failed:", e) }
+    const CHUNK_SIZE = 30;
+    const allAnalyses: any[] = [];
+    
+    for (let i = 0; i < suspicious.length; i += CHUNK_SIZE) {
+      const chunk = suspicious.slice(i, i + CHUNK_SIZE);
+      console.log(`  🤖 Scanning fraud batch ${i / CHUNK_SIZE + 1} (${chunk.length} items)...`);
+      
+      const analyses = await analyzeWithGemini(chunk);
+      
+      for (const analysis of analyses) {
+        // Must adjust listingIndex to absolute index instead of relative to chunk
+        const originalIndex = i + analysis.listingIndex;
+        const original = suspicious[originalIndex];
+        if (!original) continue;
+        
+        try {
+          await client.mutation("ingestion:updateFraudScore" as any, {
+            id: original._id,
+            fraudScore: analysis.fraudScore,
+            fraudSignals: analysis.signals,
+            fraudSeverity: analysis.severity,
+            fraudRecommendation: analysis.recommendation,
+            fraudCheckedAt: Date.now(),
+          })
+        } catch (e) { 
+          console.error("Fraud update failed:", e) 
+        }
+        allAnalyses.push(analysis);
+      }
+      
+      await new Promise(r => setTimeout(r, 3000)); // Prevent rate limits
     }
     
-    const flagged = analyses.filter(a => a.recommendation === "flag" || a.recommendation === "block")
+    const flagged = allAnalyses.filter(a => a.recommendation === "flag" || a.recommendation === "block")
     console.log(`  🚨 Flagged ${flagged.length} listings for review`)
   }
 

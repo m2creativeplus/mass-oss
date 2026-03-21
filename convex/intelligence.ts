@@ -62,6 +62,46 @@ export const getSAIPMarketPrices = query({
 });
 
 // ==========================================
+// SAIP: Aggregate Analytics for KPI Dashboard
+// ==========================================
+export const getSAIPAnalytics = query({
+  handler: async (ctx) => {
+    // Fetch counts and latest data for the KPI dashboard
+    const pois = await ctx.db.query("automotivePois").collect();
+    const marketPrices = await ctx.db.query("marketPrices").order("desc").take(100);
+    const vinChecks = await ctx.db.query("vinRegistry").order("desc").take(50);
+    const priceIntelligence = await ctx.db.query("marketPriceIntelligence").order("desc").take(50);
+
+    return {
+      pois: {
+        total: pois.length,
+        byCategory: pois.reduce((acc, poi) => {
+          acc[poi.category] = (acc[poi.category] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        recent: pois.slice(-5)
+      },
+      marketPrices: {
+        totalScraped: marketPrices.length,
+        avgPrice: marketPrices.length > 0 
+          ? marketPrices.reduce((sum, item) => sum + item.hargeisaStreetPriceUSD, 0) / marketPrices.length 
+          : 0,
+        recent: marketPrices.slice(0, 5)
+      },
+      vinRegistry: {
+        totalChecks: vinChecks.length,
+        flagged: vinChecks.filter(v => v.status === "stolen" || v.status === "flagged" || v.status === "accident").length,
+        recent: vinChecks.slice(0, 5)
+      },
+      intelligence: {
+        totalModelsTracked: priceIntelligence.length,
+        recent: priceIntelligence.slice(0, 5)
+      }
+    };
+  }
+});
+
+// ==========================================
 // SAIP: National Theft & Registry Flagging
 // ==========================================
 export const checkVinRegistry = mutation({

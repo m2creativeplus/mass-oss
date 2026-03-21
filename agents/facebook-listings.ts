@@ -13,13 +13,22 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ""
 const FB_EMAIL = process.env.FB_EMAIL || ""
 const FB_PASSWORD = process.env.FB_PASSWORD || ""
 
-// Known Somaliland Facebook car groups
+// Known Somaliland Facebook car groups & Search Queries
 const FB_GROUPS = [
   "https://www.facebook.com/marketplace/hargeisa/vehicles",
   "https://www.facebook.com/groups/somalilandcars",
   "https://www.facebook.com/groups/hargeisamarketplace",
   "https://www.facebook.com/groups/somalilandvehicles",
   "https://www.facebook.com/groups/carshargeysa",
+  
+  // Deep Dive Somali Keywords (Search URL tracking)
+  "https://www.facebook.com/search/posts?q=gaadhi%20iiba%20hargeisa",
+  "https://www.facebook.com/search/posts?q=gaadhi%20cusub%20somaliland",
+  "https://www.facebook.com/search/posts?q=macdarka%20baabuurta%20hargeisa",
+  "https://www.facebook.com/search/posts?q=noah%20iiba%20hargeisa",
+  "https://www.facebook.com/search/posts?q=toyota%20hargeisa",
+  "https://www.facebook.com/search/posts?q=dilaal%20gaadiidka%20hargeisa",
+  "https://www.facebook.com/search/posts?q=qaybaha%20baabuurta%20hargeisa",
 ]
 
 interface FBListing {
@@ -181,13 +190,20 @@ function extractUSD(priceText: string): number | undefined {
 async function normalizeWithGemini(listings: FBListing[]): Promise<any[]> {
   if (!GEMINI_API_KEY || listings.length === 0) return []
 
-  const prompt = `You are the SAIP vehicle listings normalizer for Somaliland's automotive database.
+  const CHUNK_SIZE = 20;
+  const allNormalized: any[] = [];
+  
+  for (let i = 0; i < listings.length; i += CHUNK_SIZE) {
+    const chunk = listings.slice(i, i + CHUNK_SIZE);
+    console.log(`  🤖 Gemini processing batch ${i / CHUNK_SIZE + 1} (${chunk.length} items)...`);
+    
+    const prompt = `You are the SAIP vehicle listings normalizer for Somaliland's automotive database.
 
 Extract structured vehicle data from these Facebook listings. Support Somali + English mixed text.
 Only include actual vehicle sale listings (not services, parts, or unrelated posts).
 
 Raw listings:
-${listings.slice(0, 25).map((l, i) => `--- Listing ${i + 1} ---\nTitle: ${l.title}\nRaw: ${l.rawText.slice(0, 300)}\nURL: ${l.sourceUrl}`).join("\n\n")}
+${chunk.map((l, idx) => `--- Listing ${idx + 1} ---\nTitle: ${l.title}\nRaw: ${l.rawText.slice(0, 300)}\nURL: ${l.sourceUrl}`).join("\n\n")}
 
 Return ONLY valid JSON array (no markdown):
 [
@@ -211,23 +227,46 @@ Return ONLY valid JSON array (no markdown):
   }
 ]`
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
-      }),
-    }
-  )
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+          }),
+        }
+      )
 
-  const data = await res.json()
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
-  const match = text.match(/\[[\s\S]*\]/)
-  if (!match) return []
-  try { return JSON.parse(match[0]) } catch { return [] }
+      const data = await res.json()
+      
+      if (data.error) {
+        console.error("Gemini API Error:", data.error.message);
+        // Wait 30s if rate limited, then continue
+        if (data.error.code === 429) {
+          console.log("  ⏳ Rate limited. Waiting 30s...");
+          await new Promise(r => setTimeout(r, 30000));
+        }
+        continue;
+      }
+
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ""
+      const match = text.match(/\[[\s\S]*\]/)
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        allNormalized.push(...parsed);
+      }
+    } catch (e) {
+      console.error(`  Batch failed to process`, e);
+    }
+    
+    // Add a slight delay between batches to respect free-tier RPM limits
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+  
+  return allNormalized;
 }
 
 async function pushToConvex(vehicles: any[]) {
