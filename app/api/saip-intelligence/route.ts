@@ -5,8 +5,48 @@ import { NextResponse } from "next/server"
 // Real vehicle pricing via Gemini Flash + Google Search grounding
 // ============================================================
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || ""
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+// Multi-key rotation — exhausts all available keys before giving up
+const GEMINI_KEYS = [
+  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3,
+  // Fallback keys stored as env vars below
+].filter(Boolean) as string[]
+
+const GEMINI_MODELS = [
+  "gemini-1.5-flash",   // Different quota pool — try first
+  "gemini-2.0-flash",   // Fallback
+  "gemini-1.5-flash-8b", // Ultra-fast fallback
+]
+
+async function callGemini(prompt: string, maxTokens = 4096): Promise<string | null> {
+  const keys = GEMINI_KEYS.length > 0 ? GEMINI_KEYS : [""]
+  for (const model of GEMINI_MODELS) {
+    for (const key of keys) {
+      if (!key) continue
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens },
+            }),
+            signal: AbortSignal.timeout(30000),
+          }
+        )
+        if (res.status === 429) continue // quota exhausted — try next key/model
+        if (!res.ok) continue
+        const data = await res.json()
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (text) return text
+      } catch { continue }
+    }
+  }
+  return null
+}
 
 const HARGEISA_CONTEXT = `
 You are the SAIP (Somaliland Automotive Intelligence Platform) market intelligence engine.
@@ -27,7 +67,8 @@ export async function POST(request: Request) {
   try {
     const { makes, forceRefresh } = await request.json().catch(() => ({}))
     
-    if (!GEMINI_API_KEY) {
+    const hasKeys = GEMINI_KEYS.length > 0
+    if (!hasKeys) {
       return NextResponse.json(
         { error: "GEMINI_API_KEY not configured. Go to Settings → AI Keys to add your Google Gemini key." },
         { status: 400 }
@@ -76,44 +117,23 @@ Return ONLY a valid JSON array with this exact structure (no markdown, no code b
 
 Use real market knowledge. demandLevel must be "High", "Medium", or "Low". trend must be "rising", "stable", or "falling".`
 
-    const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4096,
-        },
-      }),
-      signal: AbortSignal.timeout(30000),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
+    const rawText = await callGemini(prompt)
+    if (!rawText) {
       return NextResponse.json(
-        { error: `Gemini API error: ${response.status} — ${error}` },
-        { status: response.status }
+        { error: "All Gemini API keys quota exhausted. Please enable billing at aistudio.google.com or try again in 1 minute." },
+        { status: 429 }
       )
     }
 
-    const geminiData = await response.json()
-    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || ""
-    
-    // Extract JSON from response
     const jsonMatch = rawText.match(/\[[\s\S]*\]/)
     if (!jsonMatch) {
-      return NextResponse.json(
-        { error: "Failed to parse Gemini market data", raw: rawText.substring(0, 500) },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "Failed to parse market data", raw: rawText.substring(0, 300) }, { status: 500 })
     }
-
     const marketData = JSON.parse(jsonMatch[0])
-    
+
     return NextResponse.json({
       success: true,
-      source: "gemini-flash-2.0",
+      source: "gemini-multi-key",
       generatedAt: new Date().toISOString(),
       market: "Hargeisa, Republic of Somaliland",
       vehicles: marketData,
