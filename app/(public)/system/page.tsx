@@ -8,24 +8,24 @@ export const metadata: Metadata = {
 
 export default function SystemBlueprintPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50 pt-20 pb-24 overflow-hidden relative">
+    <main className="min-h-screen bg-zinc-950 text-white pt-20 pb-24 overflow-hidden relative">
       {/* Background Ambience */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-red-600/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-blue-600/10 blur-[150px] rounded-full" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orange-500/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-orange-500/10 blur-[150px] rounded-full" />
         <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]" />
       </div>
 
       <div className="container relative z-10 mx-auto px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-sm text-slate-300 mb-6">
-            <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-sm text-zinc-300 mb-6">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
             System Blueprint v5.0
           </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 tracking-tighter">
-            MASS OS <span className="text-red-500">Architecture</span>
+            MASS OS <span className="text-orange-500">Architecture</span>
           </h1>
-          <p className="text-xl text-slate-400">
+          <p className="text-xl text-zinc-400">
             A unified blueprint of the frontend routes, AI layers, core backend engines, and data flows powering the national automotive operating system.
           </p>
         </div>
