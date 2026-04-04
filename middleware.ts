@@ -24,6 +24,7 @@ const PUBLIC_ROUTES = [
   '/terms',
   '/verify',
   '/system',
+  '/simulator',
 ];
 
 export function middleware(request: NextRequest) {
