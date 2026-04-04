@@ -23,6 +23,7 @@ const PUBLIC_ROUTES = [
   '/privacy',
   '/terms',
   '/verify',
+  '/system',
 ];
 
 export function middleware(request: NextRequest) {
